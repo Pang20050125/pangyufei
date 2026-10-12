@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>谱谱</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E🎵%3C/text%3E%3C/svg%3E">
+<script src="./lib/supabase-js-2.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:#1a1a1a}
+#bg{position:fixed;top:0;left:0;width:100%;height:100%;background-size:cover;background-position:center;z-index:0}
+#bg-mask{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.25);z-index:1}
+
+/* ===== 顶部栏 ===== */
+#top{position:fixed;top:0;left:0;right:0;height:56px;z-index:10;display:flex;align-items:center;padding:0 16px;background:transparent}
+#top-left{display:flex;align-items:center;gap:8px}
+#thanks-btn{color:rgba(255,255,255,0.85);font-size:13px;letter-spacing:2px;padding:6px 16px;border-radius:16px;background:rgba(255,255,255,0.12);cursor:pointer;border:1px solid transparent;font-family:inherit}
+#thanks-btn:hover{background:rgba(255,255,255,0.22)}
+#title{position:absolute;left:50%;transform:translateX(-50%);color:#fff;font-size:22px;font-weight:bold;letter-spacing:3px;cursor:pointer}
+#search{display:none;position:absolute;left:50%;transform:translateX(-50%);width:60%;max-width:300px;height:36px;border:none;outline:none;border-radius:10px;background:rgba(255,255,255,0.15);color:#fff;font-size:13px;padding:0 14px;text-align:center;font-family:inherit}
+#search::placeholder{color:rgba(255,255,255,0.45)}
+#search.show{display:block}
+
+/* ===== 白线 ===== */
+#divider{position:fixed;top:56px;left:0;right:0;height:1px;background:rgba(255,255,255,0.4);z-index:10}
+
+/* ===== 谱子列表 ===== */
+#scroll{position:fixed;top:57px;left:0;right:0;bottom:100px;overflow-y:auto;z-index:8;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#scroll::-webkit-scrollbar{display:none}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:16px;max-width:900px;margin:0 auto;padding:20px 20px 40px}
+.score-card{display:flex;flex-direction:column;align-items:center;cursor:pointer;transition:transform 0.15s}
+.score-card:active{transform:scale(0.95)}
+.score-cover{width:100%;aspect-ratio:3/4;border-radius:10px;background:rgba(255,255,255,0.1);background-size:cover;background-position:center;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.score-name{margin-top:6px;color:#fff;font-size:11px;letter-spacing:1px;text-align:center;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{grid-column:1/-1;text-align:center;color:rgba(255,255,255,0.4);font-size:13px;padding:40px 0}
+
+/* ===== 底部悬浮胶囊 ===== */
+#capsule{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:20;display:flex;gap:8px;padding:8px 10px;border-radius:18px;background:rgba(255,255,255,0.18);backdrop-filter:blur(30px) saturate(130%);-webkit-backdrop-filter:blur(30px) saturate(130%);border:1px solid rgba(255,255,255,0.08)}
+.cat{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:transparent;color:rgba(255,255,255,0.7);font-size:16px;cursor:pointer;transition:all 0.2s}
+.cat:hover{background:rgba(255,255,255,0.3)}
+.cat.active{background:rgba(255,255,255,0.75);color:#1a1a1a}
+
+/* ===== 查看页 ===== */
+#viewer{position:fixed;top:0;left:0;width:100%;height:100%;z-index:100;display:none;overflow:hidden}
+#viewer.open{display:block}
+
+/* 背景（壁纸） */
+#viewer-bg{position:absolute;top:0;left:0;width:100%;height:100%;background-size:cover;background-position:center;z-index:0}
+#viewer-mask{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.25);z-index:1}
+
+/* 图片滚动区 */
+#viewer-scroll{position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;z-index:2;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#viewer-scroll::-webkit-scrollbar{display:none}
+#viewer-imgs{display:flex;flex-direction:column;align-items:center;padding:0;gap:0}
+#viewer-imgs img{width:100%;max-width:1000px;display:block;object-fit:contain;margin:0}
+
+/* 手机版：右上角 × */
+#viewer-close{position:fixed;top:16px;right:16px;z-index:10;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;line-height:38px;text-align:center;cursor:pointer;font-family:inherit;display:none}
+#viewer-close.show{display:block}
+/* 右侧缩放拉杆 */
+#zoom-bar{
+  position:fixed;
+  right:16px;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:10;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  padding:10px 6px;
+  border-radius:20px;
+  background:rgba(0,0,0,0.4);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  user-select:none;
+}
+#zoom-bar button{
+  width:28px;height:28px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.15);
+  border:none;
+  color:#fff;
+  font-size:16px;
+  line-height:28px;
+  text-align:center;
+  cursor:pointer;
+  font-family:inherit;
+  padding:0;
+}
+#zoom-bar button:hover{background:rgba(255,255,255,0.3)}
+#zoom-track{
+  position:relative;
+  width:4px;
+  height:120px;
+  border-radius:2px;
+  background:rgba(255,255,255,0.2);
+}
+#zoom-thumb{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:#fff;
+  top:50%;
+  margin-top:-7px;
+  cursor:pointer;
+  box-shadow:0 1px 4px rgba(0,0,0,0.4);
+}
+/* 手机版：底部速度条 */
+#speed-bar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:6px;padding:8px 12px;border-radius:18px;background:rgba(0,0,0,0.4);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:none}
+#speed-bar.show{display:flex}
+.speed-btn{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:14px;cursor:pointer;font-family:inherit}
+.speed-btn:hover{background:rgba(255,255,255,0.28)}
+#speed-btn{width:56px;font-size:12px}
+
+/* ===== 电脑版查看页（顶部 + 底部） ===== */
+
+#pc-bottom{position:fixed;bottom:20px;left:0;right:0;z-index:10;display:none;align-items:center;justify-content:space-between;padding:0 16px;pointer-events:none}
+#pc-bottom.show{display:flex}
+#pc-bottom > *{pointer-events:auto}
+#pc-print{padding:8px 20px;border-radius:16px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:13px;letter-spacing:1px;cursor:pointer;font-family:inherit}
+#pc-print:hover{background:rgba(255,255,255,0.28)}
+#pc-back2{padding:8px 20px;border-radius:16px;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:13px;letter-spacing:1px;cursor:pointer;font-family:inherit}
+#pc-back2:hover{background:rgba(255,255,255,0.28)}
+#pc-speed-bar{display:flex;gap:6px;padding:8px 12px;border-radius:18px;background:rgba(0,0,0,0.4);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+
+/* ===== Thanks 弹窗 ===== */
+#thanks-popup{position:fixed;top:0;left:0;width:100%;height:100%;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);backdrop-filter:blur(10px)}
+#thanks-popup.open{display:flex}
+#thanks-panel{background:rgba(255,255,255,0.1);backdrop-filter:blur(30px) saturate(130%);-webkit-backdrop-filter:blur(30px) saturate(130%);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:36px 40px;text-align:center;max-width:90vw;max-height:88vh;overflow-y:auto;scrollbar-width:none}
+#thanks-panel::-webkit-scrollbar{display:none}
+#thanks-panel h3{color:#fff;font-size:24px;letter-spacing:6px;font-weight:bold;margin-bottom:24px}
+#thanks-names{color:rgba(255,255,255,0.92);font-size:22px;line-height:1.5;letter-spacing:2px;margin-bottom:28px;white-space:pre-line}
+.qr-row{display:flex;gap:24px;justify-content:center}
+.qr-item{display:flex;flex-direction:column;align-items:center}
+.qr-item img{width:110px;height:110px;border-radius:12px;background:#fff;padding:6px;object-fit:cover}
+.qr-item span{color:rgba(255,255,255,0.85);font-size:12px;letter-spacing:2px;margin-top:10px}
+#thanks-close{margin-top:20px;padding:8px 30px;border:none;border-radius:10px;background:rgba(255,255,255,0.2);color:#fff;font-size:13px;letter-spacing:2px;cursor:pointer;font-family:inherit}
+#thanks-close:hover{background:rgba(255,255,255,0.3)}
+
+#loading{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:14px;letter-spacing:2px;z-index:300;display:none}
+#loading.show{display:block}
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+<div id="bg-mask"></div>
+
+<!-- 首页顶部 -->
+<div id="top">
+  <div id="top-left">
+    <div id="thanks-btn">Thanks</div>
+  </div>
+  <input id="search" placeholder="搜索谱子…" />
+  <div id="title">OvO</div>
+</div>
+<div id="divider"></div>
+
+<!-- 谱子列表 -->
+<div id="scroll">
+  <div id="grid"></div>
+</div>
+
+<!-- 底部胶囊 -->
+<div id="capsule">
+  <div class="cat active" data-cat="吉他">♩</div>
+  <div class="cat" data-cat="光遇">◆</div>
+  <div class="cat" data-cat="钢琴">♬</div>
+</div>
+
+<!-- 查看页 -->
+<div id="viewer">
+  <div id="viewer-bg"></div>
+  <div id="viewer-mask"></div>
+  <div id="viewer-scroll">
+    <div id="viewer-imgs"></div>
+  </div>
+
+  <!-- 手机版：右上角 × -->
+  <button id="viewer-close">×</button>
+    <!-- 右侧缩放拉杆 -->
+  <div id="zoom-bar">
+    <button id="zoom-in">+</button>
+    <div id="zoom-track">
+      <div id="zoom-thumb"></div>
+    </div>
+    <button id="zoom-out">−</button>
+  </div>
+
+  <!-- 手机版：底部速度条 -->
+  <div id="speed-bar">
+    <button class="speed-btn" id="speed-btn">速度</button>
+    <button class="speed-btn" id="slow-btn">«</button>
+    <button class="speed-btn" id="play-btn">▶</button>
+    <button class="speed-btn" id="fast-btn">»</button>
+  </div>
+
+
+
+  <!-- 电脑版底部 -->
+  <div id="pc-bottom">
+    <button id="pc-print">Print</button>
+    <div id="pc-speed-bar">
+      <button class="speed-btn" id="pc-speed-btn">速度</button>
+      <button class="speed-btn" id="pc-slow-btn">«</button>
+      <button class="speed-btn" id="pc-play-btn">▶</button>
+      <button class="speed-btn" id="pc-fast-btn">»</button>
+    </div>
+    <button id="pc-back2">Back</button>
+  </div>
+</div>
+
+<!-- Thanks 弹窗 -->
+<div id="thanks-popup">
+  <div id="thanks-panel">
+    <h3>Thanks</h3>
+    <div id="thanks-names">庞雨菲
+雨菲
+菲
+小庞
+中庞
+大庞
+KING</div>
+    <div class="qr-row">
+      <div class="qr-item">
+        <img src="https://pangyufei-card.oss-cn-shenzhen.aliyuncs.com/qr_1789031797539.jpg" alt="公众号">
+        <span>公众号</span>
+      </div>
+      <div class="qr-item">
+        <img src="https://pangyufei-card.oss-cn-shenzhen.aliyuncs.com/qr_1789031808836.jpg" alt="抖音">
+        <span>抖音</span>
+      </div>
+    </div>
+    <button id="thanks-close">关闭</button>
+  </div>
+</div>
+
+<div id="loading">加载中…</div>
+
+<script>
+const SUPABASE_URL = 'https://mulbmncmfeadvrienvqb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_lTxspnB5QDQqpFza_kZmXA_5EspN3y8';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = id => document.getElementById(id);
+
+let scores = {};
+let currentCat = '吉他';
+let filterText = '';
+
+// 判断设备
+const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+// 背景图
+(function loadBg() {
+  const cached = localStorage.getItem('wallpaper_cache');
+  if (cached) {
+    $('bg').style.backgroundImage = 'url(' + cached + ')';
+    $('viewer-bg').style.backgroundImage = 'url(' + cached + ')';
+  }
+})();
+
+// 加载数据
+async function loadScores() {
+  $('loading').classList.add('show');
+  try {
+    const { data, error } = await supabaseClient
+      .from('config').select('scores').eq('id', 1).single();
+    if (error) throw error;
+    scores = (data && data.scores) || {};
+  } catch (e) {
+    console.error('加载失败', e);
+    scores = {};
+  }
+  $('loading').classList.remove('show');
+  renderGrid();
+}
+
+function renderGrid() {
+  const grid = $('grid');
+  grid.innerHTML = '';
+
+  let items = scores[currentCat] || [];
+  if (filterText) {
+    items = items.filter(it => (it.name || '').toLowerCase().includes(filterText.toLowerCase()));
+  }
+
+  if (items.length === 0) {
+    grid.innerHTML = '<div class="empty">' + (filterText ? '没找到相关谱子' : '这个分类还没有谱子') + '</div>';
+    return;
+  }
+
+  items.forEach(item => {
+    const name = item.name || '未命名';
+    const imgs = item.images || [];
+    const cover = imgs[0] || '';
+    const card = document.createElement('div');
+    card.className = 'score-card';
+    card.innerHTML = `
+      <div class="score-cover" style="background-image:url('${cover}')"></div>
+      <div class="score-name">${escapeHtml(name)}</div>
+    `;
+    card.onclick = () => openViewer(item);
+    grid.appendChild(card);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// 查看页
+let autoScrollTimer = null;
+let autoScrollSpeed = 50;
+let autoScrolling = false;
+
+function openViewer(item) {
+  const imgs = item.images || [];
+  const box = $('viewer-imgs');
+  box.innerHTML = '';
+  imgs.forEach(url => {
+    const img = document.createElement('img');
+    img.src = url;
+    img.loading = 'lazy';
+    box.appendChild(img);
+  });
+
+  $('viewer').classList.add('open');
+
+  // 电脑 / 手机 显示不同控件
+  if (isMobile) {
+    $('viewer-close').classList.add('show');
+    $('speed-bar').classList.add('show');
+    $('pc-top').classList.remove('show');
+    $('pc-bottom').classList.remove('show');
+  } else {
+    $('viewer-close').classList.remove('show');
+    $('speed-bar').classList.remove('show');
+    $('pc-bottom').classList.add('show');
+  }
+
+  $('viewer-scroll').scrollTop = 0;
+  autoScrolling = false;
+    zoomLevel = 1.0;
+  setTimeout(applyZoom, 50);
+  $('play-btn').textContent = '▶';
+  $('pc-play-btn').textContent = '▶';
+  document.body.style.overflow = 'hidden';
+  startAutoScrollTimer();
+}
+
+function closeViewer() {
+  $('viewer').classList.remove('open');
+  $('viewer-close').classList.remove('show');
+  $('speed-bar').classList.remove('show');
+    $('pc-bottom').classList.add('show');
+  document.body.style.overflow = '';
+  autoScrolling = false;
+  if (autoScrollTimer) { clearInterval(autoScrollTimer); autoScrollTimer = null; }
+}
+
+function startAutoScrollTimer() {
+  if (autoScrollTimer) clearInterval(autoScrollTimer);
+  autoScrollTimer = setInterval(() => {
+    if (autoScrolling) {
+      $('viewer-scroll').scrollTop += autoScrollSpeed / 20;
+    }
+  }, 16);
+}
+
+// 事件
+$('title').onclick = () => {
+  $('title').style.display = 'none';
+  $('search').classList.add('show');
+  $('search').focus();
+};
+$('search').addEventListener('blur', () => {
+  setTimeout(() => {
+    if (!$('search').value) {
+      $('search').classList.remove('show');
+      $('title').style.display = '';
+    }
+  }, 150);
+});
+$('search').addEventListener('input', e => {
+  filterText = e.target.value.trim();
+  renderGrid();
+});
+
+document.querySelectorAll('.cat').forEach(el => {
+  el.onclick = () => {
+    document.querySelectorAll('.cat').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    currentCat = el.dataset.cat;
+    filterText = '';
+    $('search').value = '';
+    $('search').classList.remove('show');
+    $('title').style.display = '';
+    renderGrid();
+  };
+});
+// 缩放拉杆
+let zoomLevel = 1.0; // 0.5 ~ 2.0
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2.0;
+
+function applyZoom() {
+  document.querySelectorAll('#viewer-imgs img').forEach(img => {
+    img.style.width = (zoomLevel * 100) + '%';
+  });
+  // 更新滑块位置
+  const percent = (zoomLevel - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN);
+  const track = $('zoom-track');
+  const thumb = $('zoom-thumb');
+  const trackH = track.offsetHeight;
+  const thumbH = 14;
+  const top = (1 - percent) * (trackH - thumbH);
+  thumb.style.top = top + 'px';
+  thumb.style.marginTop = '0';
+}
+
+$('zoom-in').onclick = () => {
+  zoomLevel = Math.min(ZOOM_MAX, zoomLevel + 0.1);
+  applyZoom();
+};
+$('zoom-out').onclick = () => {
+  zoomLevel = Math.max(ZOOM_MIN, zoomLevel - 0.1);
+  applyZoom();
+};
+
+// 拖动滑块
+(function setupZoomDrag() {
+  const thumb = $('zoom-thumb');
+  const track = $('zoom-track');
+  let dragging = false;
+
+  function setByY(clientY) {
+    const rect = track.getBoundingClientRect();
+    let y = clientY - rect.top;
+    y = Math.max(0, Math.min(rect.height, y));
+    const percent = 1 - (y / rect.height);
+    zoomLevel = ZOOM_MIN + percent * (ZOOM_MAX - ZOOM_MIN);
+    applyZoom();
+  }
+
+  thumb.addEventListener('mousedown', e => { dragging = true; e.preventDefault(); });
+  track.addEventListener('mousedown', e => { dragging = true; setByY(e.clientY); e.preventDefault(); });
+  document.addEventListener('mousemove', e => { if (dragging) setByY(e.clientY); });
+  document.addEventListener('mouseup', () => { dragging = false; });
+  // 触屏
+  thumb.addEventListener('touchstart', e => { dragging = true; e.preventDefault(); }, {passive:false});
+  track.addEventListener('touchstart', e => { dragging = true; setByY(e.touches[0].clientY); e.preventDefault(); }, {passive:false});
+  document.addEventListener('touchmove', e => { if (dragging) { setByY(e.touches[0].clientY); e.preventDefault(); } }, {passive:false});
+  document.addEventListener('touchend', () => { dragging = false; });
+})();
+// 手机版按钮
+$('viewer-close').onclick = closeViewer;
+$('play-btn').onclick = () => {
+  autoScrolling = !autoScrolling;
+  $('play-btn').textContent = autoScrolling ? '❚❚' : '▶';
+};
+$('slow-btn').onclick = () => { autoScrollSpeed = Math.max(5, autoScrollSpeed - 5); };
+$('fast-btn').onclick = () => { autoScrollSpeed = Math.min(150, autoScrollSpeed + 5); };
+$('speed-btn').onclick = () => {
+  const v = prompt('滚动速度（5-150）', String(autoScrollSpeed));
+  if (v) { const n = parseInt(v); if (n >= 5 && n <= 150) autoScrollSpeed = n; }
+};
+
+// 电脑版按钮
+$('pc-back2').onclick = closeViewer;
+$('pc-print').onclick = () => alert('请在电脑版谱谱中打印');
+$('pc-play-btn').onclick = () => {
+  autoScrolling = !autoScrolling;
+  $('pc-play-btn').textContent = autoScrolling ? '❚❚' : '▶';
+};
+$('pc-slow-btn').onclick = () => { autoScrollSpeed = Math.max(5, autoScrollSpeed - 5); };
+$('pc-fast-btn').onclick = () => { autoScrollSpeed = Math.min(150, autoScrollSpeed + 5); };
+$('pc-speed-btn').onclick = () => {
+  const v = prompt('滚动速度（5-150）', String(autoScrollSpeed));
+  if (v) { const n = parseInt(v); if (n >= 5 && n <= 150) autoScrollSpeed = n; }
+};
+
+// Thanks
+$('thanks-btn').onclick = () => $('thanks-popup').classList.add('open');
+$('thanks-close').onclick = () => $('thanks-popup').classList.remove('open');
+$('thanks-popup').onclick = e => {
+  if (e.target.id === 'thanks-popup') $('thanks-popup').classList.remove('open');
+};
+
+loadScores();
+</script>
+</body>
+</html>

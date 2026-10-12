@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>木初</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E🌷%3C/text%3E%3C/svg%3E">
+<script src="./lib/supabase-js-2.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+  background:#FDF6F0;
+  touch-action:pan-y;
+  -webkit-user-select:none;user-select:none;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;
+}
+
+/* ============ 登录页 ============ */
+#login-page{
+  position:fixed;top:0;left:0;width:100vw;height:100vh;
+  background:#FDF6F0;
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;
+}
+#login-page.hide{display:none}
+.login-box{
+  width:100%;max-width:340px;padding:0 24px;
+  display:flex;flex-direction:column;align-items:center;
+}
+.login-title{
+  font-size:42px;font-weight:bold;color:#7A4A4A;
+  letter-spacing:6px;margin-bottom:10px;
+}
+.login-sub{
+  font-size:14px;color:#B08968;
+  letter-spacing:3px;margin-bottom:50px;
+}
+.login-input{
+  width:100%;height:48px;
+  border:none;outline:none;
+  border-radius:14px;
+  background:#fff;
+  color:#5A3030;
+  font-size:15px;
+  font-family:inherit;
+  text-align:center;
+  letter-spacing:2px;
+  margin-bottom:14px;
+  border:1px solid rgba(0,0,0,0.06);
+  box-shadow:0 2px 8px rgba(0,0,0,0.03);
+}
+.login-input::placeholder{color:rgba(0,0,0,0.3)}
+.login-input:focus{border-color:#F48FB1}
+.login-btn{
+  width:100%;height:50px;
+  border:none;border-radius:25px;
+  background:#F48FB1;color:#fff;
+  font-family:inherit;font-size:16px;font-weight:600;
+  letter-spacing:3px;cursor:pointer;
+  margin-top:10px;
+  box-shadow:0 4px 12px rgba(244,143,177,0.4);
+  transition:transform 0.15s;
+}
+.login-btn:active{transform:scale(0.97)}
+.login-error{
+  color:#ff5252;font-size:13px;letter-spacing:1px;
+  margin-top:16px;height:20px;text-align:center;
+}
+
+/* ============ 木初 App（已登录） ============ */
+#app-page{
+  position:fixed;top:0;left:0;width:100vw;height:100vh;
+  background:#FDF6F0;
+  display:none;
+  overflow-y:auto;
+  scrollbar-width:none;
+  padding:24px 20px 40px;
+}
+#app-page.show{display:block}
+#app-page::-webkit-scrollbar{display:none}
+
+#muchu-app-header{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  margin-bottom:20px;
+}
+#muchu-app-title{
+  font-size:26px;font-weight:bold;color:#7A4A4A;letter-spacing:2px;
+}
+#muchu-app-subtitle{
+  font-size:13px;color:rgba(0,0,0,0.45);margin-top:4px;
+}
+
+/* 月历 */
+#muchu-app-calendar{
+  background:#fff;border-radius:20px;
+  padding:16px 12px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.04);
+  margin-bottom:20px;
+}
+.muchu-cal-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:8px;
+}
+.muchu-cal-title{
+  font-size:16px;font-weight:600;color:#5A3030;letter-spacing:1px;
+}
+.muchu-cal-nav{
+  background:transparent;border:none;
+  font-size:20px;color:#B08968;cursor:pointer;padding:4px 12px;
+}
+.muchu-cal-week{
+  display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:8px;
+}
+.muchu-cal-week span{
+  text-align:center;font-size:12px;color:#B08968;letter-spacing:1px;
+}
+.muchu-cal-grid{
+  display:grid;grid-template-columns:repeat(7,1fr);gap:2px;
+}
+.muchu-day{
+  aspect-ratio:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  border-radius:50%;font-size:13px;color:#F48FB1;
+  cursor:pointer;position:relative;z-index:1;
+}
+.muchu-day.empty-cell{cursor:default;pointer-events:none}
+.muchu-day{position:relative}
+.muchu-day.period::before,
+.muchu-day.predict::before,
+.muchu-day.ovulation::before,
+.muchu-day.ovulationDay::before,
+.muchu-day.today::before{
+  content:'';position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:100%;height:100%;border-radius:50%;
+  background:transparent;z-index:0;
+  box-sizing:border-box;
+}
+/* 数字层级高于圈 */
+.muchu-day > span{position:relative;z-index:2}
+
+.muchu-day.period::before{
+  border:2px solid #C62828;
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.18),
+    0 8px 16px rgba(0,0,0,0.1),
+    inset 0 3px 5px rgba(0,0,0,0.3),
+    inset 0 -2px 4px rgba(255,255,255,0.7);
+}
+.muchu-day.predict::before{
+  border:2px solid #F8BBD0;
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.18),
+    0 8px 16px rgba(0,0,0,0.1),
+    inset 0 3px 5px rgba(0,0,0,0.18),
+    inset 0 -2px 4px rgba(255,255,255,0.7);
+}
+.muchu-day.ovulation::before{
+  border:2px solid #B3E5FC;
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.18),
+    0 8px 16px rgba(0,0,0,0.1),
+    inset 0 3px 5px rgba(0,0,0,0.18),
+    inset 0 -2px 4px rgba(255,255,255,0.7);
+}
+.muchu-day.ovulationDay::before{
+  border:2px solid #90CAF9;
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.18),
+    0 8px 16px rgba(0,0,0,0.1),
+    inset 0 3px 5px rgba(0,0,0,0.25),
+    inset 0 -2px 4px rgba(255,255,255,0.7);
+}
+.muchu-day.today::before{
+  border:1.5px solid #FFB74D;
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.18),
+    0 8px 16px rgba(0,0,0,0.1),
+    inset 0 3px 5px rgba(0,0,0,0.25),
+    inset 0 -2px 4px rgba(255,255,255,0.7);
+}
+
+/* 颜色 */
+.muchu-day{color:#F48FB1}
+.muchu-day.period{color:#F48FB1}
+.muchu-day.today{font-weight:bold;color:#F48FB1}
+.muchu-day.period.today{color:#F48FB1}
+
+/* 选中 */
+.muchu-day.selected{background:rgba(244,143,177,0.25);font-weight:bold;color:#F48FB1}
+.muchu-day.selected.period{color:#F48FB1}
+.muchu-day.selected.today{color:#F48FB1}
+.muchu-day.selected.period.today{color:#F48FB1}
+/* 今天+经期：橙圈（外）+ 红圈（内），红圈紧贴橙圈内侧 */
+/* 今天+经期：黄圈在外，红圈在内 */
+.muchu-day.period.today::after{
+  content:'';position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:100%;height:100%;border-radius:50%;
+  background:transparent;z-index:0;
+  box-sizing:border-box;
+  border:1.5px solid #FFB74D;
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.18),
+    0 8px 16px rgba(0,0,0,0.1),
+    inset 0 3px 5px rgba(0,0,0,0.15);
+}
+.muchu-day.period.today::before{
+  width:calc(100% - 3px);
+  height:calc(100% - 3px);
+  border:2px solid #C62828;
+  box-shadow:
+    inset 0 3px 5px rgba(0,0,0,0.3),
+    inset 0 -2px 4px rgba(255,255,255,0.7);
+  z-index:1;
+}
+.muchu-day .festival-dot{
+  position:absolute;bottom:4px;width:4px;height:4px;
+  border-radius:50%;background:#ff5252;
+}
+.muchu-day .anniv-dot{
+  position:absolute;bottom:4px;width:4px;height:4px;
+  border-radius:50%;background:#F48FB1;
+}
+.muchu-day > span{
+  position:relative;z-index:2;
+}
+#anniv-add-btn{
+  background:transparent;border:none;
+  font-size:14px;color:#F48FB1;
+  cursor:pointer;padding:6px 10px;
+  font-family:inherit;letter-spacing:1px;
+}
+#anniv-add-btn:active{transform:scale(0.9)}
+#anniv-popup{
+  position:fixed;top:0;left:0;width:100vw;height:100vh;
+  z-index:420;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.3);backdrop-filter:blur(6px);
+}
+#anniv-popup.open{display:flex}
+#anniv-frame{
+  background:#FDF6F0;border-radius:24px;
+  padding:28px 26px;width:360px;max-width:92vw;
+  max-height:86vh;overflow-y:auto;scrollbar-width:none;
+}
+#anniv-frame::-webkit-scrollbar{display:none}
+#anniv-frame h3{
+  font-size:18px;font-weight:bold;color:#7A4A4A;
+  letter-spacing:2px;margin-bottom:18px;text-align:center;
+}
+.anniv-field{margin-bottom:14px}
+.anniv-field label{
+  display:block;font-size:12px;color:#7A4A4A;
+  letter-spacing:2px;margin-bottom:6px;
+}
+.anniv-field input[type="text"],
+.anniv-field input[type="date"],
+.anniv-field textarea{
+  width:100%;padding:10px 12px;border:none;outline:none;
+  border-radius:10px;background:#fff;color:#5A3030;
+  font-family:inherit;font-size:13px;letter-spacing:1px;
+  border:1px solid rgba(0,0,0,0.06);
+}
+.anniv-field textarea{min-height:60px;resize:vertical}
+.anniv-switch-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;
+}
+.anniv-switch-row span{
+  font-size:13px;color:#7A4A4A;letter-spacing:2px;
+}
+.anniv-switch{
+  position:relative;width:48px;height:26px;
+  border-radius:13px;background:#E0C9C9;
+  cursor:pointer;transition:background 0.2s;
+  flex:0 0 auto;
+}
+.anniv-switch.on{background:#F48FB1}
+.anniv-switch::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:20px;height:20px;border-radius:50%;
+  background:#fff;transition:left 0.2s;
+  box-shadow:0 1px 4px rgba(0,0,0,0.2);
+}
+.anniv-switch.on::after{left:25px}
+#anniv-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.anniv-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 12px;border-radius:10px;background:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,0.03);
+}
+.anniv-item-info{flex:1;overflow:hidden}
+.anniv-item-name{
+  font-size:13px;color:#5A3030;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.anniv-item-date{
+  font-size:11px;color:rgba(0,0,0,0.45);margin-top:2px;
+}
+.anniv-item-del{
+  background:transparent;border:none;color:rgba(0,0,0,0.35);
+  font-size:16px;cursor:pointer;padding:0 4px;
+}
+.anniv-item-del:hover{color:#ff5252}
+.anniv-btn-row{display:flex;gap:10px;margin-top:8px}
+.anniv-btn-row button{
+  flex:1;padding:11px;border:none;border-radius:12px;
+  font-family:inherit;font-size:14px;letter-spacing:1px;cursor:pointer;
+}
+#anniv-save{background:#F48FB1;color:#fff}
+#anniv-cancel{background:rgba(0,0,0,0.06);color:#7A4A4A}
+#anniv-detail-popup{
+  position:fixed;top:0;left:0;width:100vw;height:100vh;
+  z-index:430;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.3);backdrop-filter:blur(6px);
+}
+#anniv-detail-popup.open{display:flex}
+#anniv-detail-frame{
+  background:#FDF6F0;border-radius:24px;
+  padding:28px 26px;width:320px;max-width:92vw;
+}
+#anniv-detail-name{
+  font-size:18px;font-weight:bold;color:#7A4A4A;
+  letter-spacing:2px;margin-bottom:8px;
+}
+#anniv-detail-text{
+  font-size:14px;color:#5A3030;line-height:1.8;
+  white-space:pre-wrap;word-break:break-word;
+}
+#anniv-detail-date{
+  font-size:12px;color:rgba(0,0,0,0.45);
+  margin-top:16px;text-align:right;
+}
+
+/* 图例 */
+#muchu-app-legend{
+  display:flex;flex-wrap:wrap;justify-content:center;
+  gap:4px 14px;margin-bottom:24px;
+}
+.legend-item{
+  font-size:11px;color:#7A4A4A;display:inline-flex;align-items:center;
+}
+.legend-dot{
+  display:inline-block;width:12px;height:12px;
+  border-radius:50%;margin-right:6px;
+}
+
+/* 记录按钮 */
+#muchu-app-add-record{
+  width:100%;height:52px;border:none;
+  border-radius:26px;background:#F48FB1;color:#fff;
+  font-family:inherit;font-size:16px;font-weight:600;
+  letter-spacing:2px;cursor:pointer;
+  box-shadow:0 4px 12px rgba(244,143,177,0.4);
+  margin-bottom:16px;
+}
+
+/* 内联表单 */
+#muchu-app-inline-form{
+  background:#fff;border-radius:16px;
+  padding:14px 16px;margin-bottom:20px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.04);
+}
+.muchu-inline-label{
+  font-size:12px;color:#7A4A4A;letter-spacing:2px;
+  margin-bottom:8px;margin-top:10px;
+}
+.muchu-inline-label:first-child{margin-top:0}
+.muchu-inline-options{display:flex;gap:8px;flex-wrap:wrap}
+#muchu-inline-note{
+  width:100%;
+  min-height:60px;
+  padding:10px 12px;
+  border:none;
+  outline:none;
+  border-radius:10px;
+  background:#FDF6F0;
+  color:#5A3030;
+  font-family:inherit;
+  font-size:13px;
+  letter-spacing:1px;
+  line-height:1.7;
+  resize:vertical;
+  box-sizing:border-box;
+}
+#muchu-inline-note::placeholder{color:rgba(0,0,0,0.3)}
+#muchu-inline-note:disabled{background:#F5EDE8;color:rgba(0,0,0,0.4)}
+.muchu-opt{
+  padding:8px 18px;border-radius:20px;
+  background:#FDF6F0;color:#7A4A4A;
+  font-size:13px;letter-spacing:1px;
+  cursor:pointer;transition:all 0.15s ease;
+  border:1.5px solid transparent;
+}
+.muchu-opt:hover{background:#FADADD}
+.muchu-opt.active{background:#F48FB1;color:#fff;border-color:#F48FB1}
+
+/* 弹窗 */
+#muchu-app-day-popup{
+  position:fixed;top:0;left:0;width:100vw;height:100vh;
+  z-index:410;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.3);backdrop-filter:blur(6px);
+}
+#muchu-app-day-popup.open{display:flex}
+#muchu-app-day-frame{
+  background:#FDF6F0;border-radius:24px;
+  padding:28px 26px;width:340px;max-width:92vw;
+}
+#muchu-app-day-title{font-size:18px;font-weight:bold;color:#7A4A4A;letter-spacing:2px;margin-bottom:6px}
+#muchu-app-day-content{font-size:15px;color:#5A3030;line-height:1.8}
+#muchu-app-day-date{font-size:13px;color:rgba(0,0,0,0.45);margin-top:20px;margin-bottom:4px;text-align:right}
+.muchu-app-btn-row{display:flex;gap:10px;margin-top:22px}
+.muchu-app-btn-row button{
+  flex:1;padding:11px;border:none;border-radius:12px;
+  background:#F48FB1;color:#fff;
+  font-family:inherit;font-size:14px;letter-spacing:1px;cursor:pointer;
+}
+/* ============ 留言弹窗 ============ */
+#muchu-msg-popup{
+  position:fixed;top:0;left:0;width:100vw;height:100vh;
+  z-index:440;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.3);backdrop-filter:blur(6px);
+}
+#muchu-msg-popup.open{display:flex}
+#muchu-msg-frame{
+  background:#FDF6F0;border-radius:24px;
+  padding:28px 26px;width:340px;max-width:92vw;
+}
+#muchu-msg-to{font-size:15px;color:#5A3030;font-weight:bold;letter-spacing:2px;margin-bottom:14px}
+#muchu-msg-content{font-size:15px;color:#5A3030;line-height:1.8;white-space:pre-wrap;word-break:break-word;min-height:50px}
+#muchu-msg-sign{font-size:13px;color:rgba(0,0,0,0.45);margin-top:20px;text-align:right}
+.muchu-msg-btn-row{display:flex;gap:10px;margin-top:22px}
+.muchu-msg-btn-row button{
+  flex:1;padding:11px;border:none;border-radius:12px;
+  background:#F48FB1;color:#fff;
+  font-family:inherit;font-size:14px;letter-spacing:1px;cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 登录页 ============ -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-title">木初</div>
+    <div class="login-sub">小庞爱你哦OvO</div>
+    <input type="text" id="login-user" class="login-input" placeholder="账号" autocomplete="off">
+    <input type="password" id="login-pwd" class="login-input" placeholder="密码">
+    <button class="login-btn" onclick="doLogin()">登 录</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ============ 木初 App ============ -->
+<div id="app-page">
+  <div id="muchu-app-header">
+    <div>
+      <div id="muchu-app-title">木初</div>
+      <div id="muchu-app-subtitle">小庞一直爱你</div>
+    </div>
+    <button id="anniv-add-btn" onclick="openAnnivManager()">＋ 纪念日</button>
+  </div>
+
+  <div id="muchu-app-calendar"></div>
+
+  <div id="muchu-app-legend">
+    <span class="legend-item"><span class="legend-dot" style="background:#C62828"></span>经期</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#F8BBD0"></span>预测经期</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#B3E5FC"></span>排卵期</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#90CAF9"></span>排卵日</span>
+    <span class="legend-item"><span class="legend-dot" style="background:#FFB74D"></span>今天</span>
+  </div>
+
+  <button id="muchu-app-add-record" onclick="muchuAppToggleRecord()">开始经期</button>
+
+  <div id="muchu-app-inline-form" style="display:none">
+    <div class="muchu-inline-label">流量</div>
+    <div class="muchu-inline-options" id="muchu-inline-flow">
+      <span class="muchu-opt" data-val="heavy">多</span>
+      <span class="muchu-opt active" data-val="medium">中</span>
+      <span class="muchu-opt" data-val="light">少</span>
+    </div>
+
+    <div class="muchu-inline-label">痛感</div>
+    <div class="muchu-inline-options" id="muchu-inline-pain">
+      <span class="muchu-opt active" data-val="无">无</span>
+      <span class="muchu-opt" data-val="轻">轻</span>
+      <span class="muchu-opt" data-val="中">中</span>
+      <span class="muchu-opt" data-val="重">重</span>
+    </div>
+
+    <div class="muchu-inline-label">心情</div>
+    <div class="muchu-inline-options" id="muchu-inline-mood">
+      <span class="muchu-opt active" data-val="OvO">OvO</span>
+      <span class="muchu-opt" data-val="O-O">O-O</span>
+      <span class="muchu-opt" data-val="O^O">O^O</span>
+    </div>
+
+    <div class="muchu-inline-label">想对小庞说的话</div>
+    <textarea id="muchu-inline-note" placeholder="写点什么..." maxlength="200"></textarea>
+  </div>
+</div>
+
+<!-- ============ 纪念日管理面板 ============ -->
+<div id="anniv-popup">
+  <div id="anniv-frame">
+    <h3>纪念日</h3>
+    <div id="anniv-list"></div>
+    <div class="anniv-field">
+      <label>名称</label>
+      <input type="text" id="anniv-name" placeholder="比如：在一起纪念日" maxlength="20">
+    </div>
+    <div class="anniv-field">
+      <label>日期</label>
+      <input type="date" id="anniv-date">
+    </div>
+    <div class="anniv-field">
+      <label>备注（可选）</label>
+      <textarea id="anniv-text" placeholder="想说的话..." maxlength="200"></textarea>
+    </div>
+    <div class="anniv-switch-row">
+      <span>每年重复</span>
+      <div class="anniv-switch on" id="anniv-repeat-switch" onclick="toggleAnnivRepeat()"></div>
+    </div>
+    <div class="anniv-btn-row">
+      <button id="anniv-save" onclick="saveAnniv()">保存</button>
+      <button id="anniv-cancel" onclick="closeAnnivManager()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 纪念日详情 ============ -->
+<div id="anniv-detail-popup">
+  <div id="anniv-detail-frame">
+    <div id="anniv-detail-name"></div>
+    <div id="anniv-detail-text"></div>
+    <div id="anniv-detail-date"></div>
+    <div class="anniv-btn-row">
+      <button id="anniv-save" onclick="closeAnnivDetail()">知道啦</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ "在这一天"面板 ============ -->
+<div id="muchu-app-day-popup">
+  <div id="muchu-app-day-frame">
+    <div id="muchu-app-day-title">在这一天</div>
+    <div id="muchu-app-day-content"></div>
+    <div id="muchu-app-day-date"></div>
+    <div class="muchu-app-btn-row">
+      <button onclick="closeMuchuAppDay()">知道啦</button>
+    </div>
+  </div>
+</div>
+<!-- ============ 留言弹窗 ============ -->
+<div id="muchu-msg-popup">
+  <div id="muchu-msg-frame">
+    <div id="muchu-msg-to">To 小黄：</div>
+    <div id="muchu-msg-content"></div>
+    <div id="muchu-msg-sign"></div>
+    <div class="muchu-msg-btn-row">
+      <button onclick="muchuMsgNext()">收到！</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ 配置 ============
+const SUPABASE_URL = 'https://mulbmncmfeadvrienvqb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_lTxspnB5QDQqpFza_kZmXA_5EspN3y8';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// 账号密码（小黄的）
+const LOGIN_USER = atob('MjAwNTAzMDk=');   // 20050309
+const LOGIN_PWD  = atob('MDUwMzA5');        // 050309
+
+// 登录记住时长：30 天
+const LOGIN_DAYS = 30;
+const LOGIN_KEY = 'muchu_login_expire';
+
+// ============ 工具 ============
+const $ = id => document.getElementById(id);
+
+// ============ 登录 ============
+function checkLogin() {
+  const expire = localStorage.getItem(LOGIN_KEY);
+  if (!expire) return false;
+  const t = parseInt(expire);
+  if (isNaN(t) || t < Date.now()) {
+    localStorage.removeItem(LOGIN_KEY);
+    return false;
+  }
+  return true;
+}
+
+function doLogin() {
+  const u = $('login-user').value.trim();
+  const p = $('login-pwd').value;
+  const err = $('login-error');
+
+  if (u === LOGIN_USER && p === LOGIN_PWD) {
+    const expire = Date.now() + LOGIN_DAYS * 86400000;
+    localStorage.setItem(LOGIN_KEY, String(expire));
+    err.textContent = '';
+    $('login-user').value = '';
+    $('login-pwd').value = '';
+    showApp();
+  } else {
+    err.textContent = '账号或密码不对哦';
+    $('login-pwd').value = '';
+  }
+}
+
+// 回车登录
+$('login-user').addEventListener('keydown', e => { if (e.key === 'Enter') $('login-pwd').focus(); });
+$('login-pwd').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// 显示 App
+function showApp() {
+  $('login-page').classList.add('hide');
+  $('app-page').classList.add('show');
+  initMuchuApp();
+  startMuchuAutoRefresh();
+}
+
+// ============ 木初 App 逻辑 ============
+let muchuRecords = [];
+let muchuAppNotes = {};
+let muchuAppMonth = new Date(new Date().getFullYear(), new Date().getMonth());
+let muchuAnnivList = [];
+let muchuAnnivRepeat = true;
+let muchuSelectedDate = null;  // 当前正在编辑的日期（YYYY-MM-DD）
+
+async function initMuchuApp() {
+  await muchuAppLoadData();
+  muchuAppRenderCalendar();
+  muchuAppUpdateButton();
+  // 只选中今天，不弹面板
+  const today = new Date();
+  window.muchuAppSelectedDay = {
+    year: today.getFullYear(),
+    month: today.getMonth(),
+    day: today.getDate()
+  };
+  muchuAppRenderCalendar();
+  muchuAppUpdateInlineFormForDay(today.getFullYear(), today.getMonth(), today.getDate());
+  // 查未读留言
+  muchuCheckMessages();
+}
+
+async function muchuAppLoadData() {
+  try {
+    const { data: records } = await supabaseClient
+      .from('period_records').select().eq('user_id', 'her')
+      .order('start_date', { ascending: false });
+    muchuRecords = records || [];
+    
+
+    const { data: notes } = await supabaseClient.from('sweet_notes').select();
+    const grouped = {};
+    (notes || []).forEach(row => {
+      const cat = row.category;
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(row.content);
+    });
+    muchuAppNotes = grouped;
+
+    const { data: annivs } = await supabaseClient
+      .from('anniversaries')
+      .select()
+      .order('date', { ascending: true });
+    muchuAnnivList = annivs || [];
+  } catch (e) {
+    console.error('加载失败:', e);
+  }
+}
+
+function muchuAppAvgCycle() {
+  if (muchuRecords.length < 2) return 28;
+  const sorted = muchuRecords.slice().sort((a, b) => a.start_date.localeCompare(b.start_date));
+  let total = 0, count = 0;
+  for (let i = 1; i < sorted.length; i++) {
+    const d1 = new Date(sorted[i - 1].start_date);
+    const d2 = new Date(sorted[i].start_date);
+    const diff = Math.round((d2 - d1) / 86400000);
+    if (diff > 15 && diff < 60) { total += diff; count++; }
+  }
+  return count > 0 ? Math.round(total / count) : 28;
+}
+
+function muchuAppNextPeriod() {
+  if (muchuRecords.length === 0) return null;
+  const lastStart = new Date(muchuRecords[0].start_date);
+  const next = new Date(lastStart);
+  next.setDate(next.getDate() + muchuAppAvgCycle());
+  return next;
+}
+
+function muchuAppPredictRange() {
+  if (muchuRecords.length === 0) {
+    const today = new Date();
+    const arr = [];
+    for (let m = -6; m <= 6; m++) {
+      const base = new Date(today.getFullYear(), today.getMonth() + m, 4);
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(base);
+        d.setDate(d.getDate() + i);
+        arr.push(d);
+      }
+    }
+    return arr;
+  }
+  const next = muchuAppNextPeriod();
+  if (!next) return [];
+  const arr = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(next);
+    d.setDate(d.getDate() + i);
+    arr.push(d);
+  }
+  return arr;
+}
+
+function muchuAppOvulationDay() {
+  if (muchuRecords.length === 0) return null;
+  const next = muchuAppNextPeriod();
+  if (!next) return null;
+  const d = new Date(next);
+  d.setDate(d.getDate() - 14);
+  return d;
+}
+
+function muchuAppOvulationRange() {
+  if (muchuRecords.length === 0) return [];
+  const ov = muchuAppOvulationDay();
+  if (!ov) return [];
+  const arr = [];
+  for (let i = -5; i <= 5; i++) {
+    const d = new Date(ov);
+    d.setDate(d.getDate() + i);
+    arr.push(d);
+  }
+  return arr;
+}
+
+function muchuAppDayType(day) {
+  const d = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+  const today = new Date();
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  for (const r of muchuRecords) {
+    if (!r.start_date) continue;
+    const s = new Date(r.start_date);
+    const sDate = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+    let eDate;
+    if (r.end_date) {
+      const e = new Date(r.end_date);
+      eDate = new Date(e.getFullYear(), e.getMonth(), e.getDate());
+    } else {
+      eDate = todayDate;
+    }
+    if (d >= sDate && d <= eDate) return 'period';
+  }
+
+  for (const p of muchuAppPredictRange()) {
+    if (d.getTime() === new Date(p.getFullYear(), p.getMonth(), p.getDate()).getTime()) return 'predict';
+  }
+
+  const ov = muchuAppOvulationDay();
+  if (ov && d.getTime() === new Date(ov.getFullYear(), ov.getMonth(), ov.getDate()).getTime()) return 'ovulationDay';
+
+  for (const p of muchuAppOvulationRange()) {
+    if (d.getTime() === new Date(p.getFullYear(), p.getMonth(), p.getDate()).getTime()) return 'ovulation';
+  }
+  return null;
+}
+
+function muchuAppFestival(day) {
+  const m = day.getMonth() + 1;
+  const d = day.getDate();
+  const map = {
+    '1-1':'元旦','2-14':'情人节','3-8':'妇女节','5-1':'劳动节',
+    '6-1':'儿童节','10-1':'国庆节','12-25':'圣诞节','12-31':'跨年'
+  };
+  return map[`${m}-${d}`] || null;
+}
+
+function muchuAppPrevMonth() {
+  muchuAppMonth = new Date(muchuAppMonth.getFullYear(), muchuAppMonth.getMonth() - 1);
+  muchuAppRenderCalendar();
+}
+function muchuAppNextMonth() {
+  muchuAppMonth = new Date(muchuAppMonth.getFullYear(), muchuAppMonth.getMonth() + 1);
+  muchuAppRenderCalendar();
+}
+
+function muchuAppRenderCalendar() {
+  const box = $('muchu-app-calendar');
+  const year = muchuAppMonth.getFullYear();
+  const month = muchuAppMonth.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const firstWeekday = firstDay.getDay();
+  const prevMonthLastDay = new Date(year, month, 0).getDate();
+  const prevFill = [];
+  for (let i = 0; i < firstWeekday; i++) {
+    prevFill.push(new Date(year, month - 1, prevMonthLastDay - firstWeekday + 1 + i));
+  }
+  const thisMonth = [];
+  for (let i = 1; i <= lastDay.getDate(); i++) thisMonth.push(new Date(year, month, i));
+  const totalCells = Math.ceil((prevFill.length + thisMonth.length) / 7) * 7;
+  const nextFillCount = totalCells - prevFill.length - thisMonth.length;
+  const nextFill = [];
+  for (let i = 1; i <= nextFillCount; i++) nextFill.push(new Date(year, month + 1, i));
+  const allDays = [...prevFill, ...thisMonth, ...nextFill];
+  const today = new Date();
+
+  let html = `
+    <div class="muchu-cal-header">
+      <button class="muchu-cal-nav" onclick="muchuAppPrevMonth()">‹</button>
+      <div class="muchu-cal-title">${year}年${month + 1}月</div>
+      <button class="muchu-cal-nav" onclick="muchuAppNextMonth()">›</button>
+    </div>
+    <div class="muchu-cal-week">
+      <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+    </div>
+    <div class="muchu-cal-grid">
+  `;
+
+  allDays.forEach(day => {
+    const isThisMonth = day.getMonth() === month;
+    const type = muchuAppDayType(day);
+    const isToday = day.getFullYear() === today.getFullYear() &&
+                    day.getMonth() === today.getMonth() &&
+                    day.getDate() === today.getDate();
+    const festival = muchuAppFestival(day);
+
+    let cls = 'muchu-day';
+    if (!isThisMonth) {
+      html += `<div class="muchu-day empty-cell"></div>`;
+      return;
+    }
+    if (type === 'period') cls += ' period';
+    else if (type === 'predict') cls += ' predict';
+    else if (type === 'ovulation') cls += ' ovulation';
+    else if (type === 'ovulationDay') cls += ' ovulationDay';
+    if (isToday) cls += ' today';
+
+    if (window.muchuAppSelectedDay &&
+        window.muchuAppSelectedDay.year === day.getFullYear() &&
+        window.muchuAppSelectedDay.month === day.getMonth() &&
+        window.muchuAppSelectedDay.day === day.getDate()) {
+      cls += ' selected';
+    }
+
+    const onClick = `onclick="muchuAppShowDay(${day.getFullYear()},${day.getMonth()},${day.getDate()})"`;
+    html += `<div class="${cls}" ${onClick}>`;
+    html += `<span>${day.getDate()}</span>`;
+    if (festival) html += `<span class="festival-dot"></span>`;
+    if (muchuAppHasAnniv(day)) html += `<span class="anniv-dot"></span>`;
+    html += `</div>`;
+  });
+
+  html += `</div>`;
+  box.innerHTML = html;
+}
+
+/* ===== 不重复随机：洗牌池 ===== */
+function makePool(arr) {
+  const pool = arr.slice();
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool;
+}
+let notePools = {};
+function drawNote(category) {
+  const list = muchuAppNotes[category] || [];
+  if (list.length === 0) return null;
+  if (!notePools[category] || notePools[category].length === 0) {
+    notePools[category] = makePool(list);
+  }
+  return notePools[category].pop();
+}
+let btnPool = [];
+let MUCHU_BTN_TEXTS = ['知道啦', '哦哦', '好的', '嘤嘤嘤', '明白~'];
+function drawBtnText() {
+  const list = muchuAppNotes['btn'];
+  if (list && list.length > 0) MUCHU_BTN_TEXTS = list;
+  if (btnPool.length === 0) btnPool = makePool(MUCHU_BTN_TEXTS);
+  return btnPool.pop();
+}
+
+function muchuAppShowDay(year, month, day) {
+  const d = new Date(year, month, day);
+  const type = muchuAppDayType(d);
+  const festival = muchuAppFestival(d);
+  const df = `${month + 1}月${day}日`;
+
+  window.muchuAppSelectedDay = { year, month, day };
+  muchuAppRenderCalendar();
+
+  let lines = [];
+  if (festival) lines.push('今天是' + festival + '哦～');
+
+  // 纪念日
+  muchuAppGetAnnivs(d).forEach(a => {
+    lines.push((a.name || '纪念日') + (a.text ? '：' + a.text : ''));
+  });
+
+
+
+  // 情话（一轮不重复）
+  const category = type || 'normal';
+  const note = drawNote(category);
+  if (note) lines.push(note);
+
+  $('muchu-app-day-date').textContent = df;
+  $('muchu-app-day-content').innerHTML = lines.map(t => `<div>${t}</div>`).join('');
+
+  const btn = document.querySelector('#muchu-app-day-frame .muchu-app-btn-row button');
+  if (btn) btn.textContent = drawBtnText();
+
+  $('muchu-app-day-popup').classList.add('open');
+
+  // 记录当前编辑日期（YYYY-MM-DD）
+  muchuSelectedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  // 更新底部内联表单（显示那天的流量/痛感/心情）
+  muchuAppUpdateInlineFormForDay(year, month, day);
+}
+
+/* ===== 根据某天，回显底部内联表单 ===== */
+function muchuAppUpdateInlineFormForDay(year, month, day) {
+  const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  let target = null;
+  for (const r of muchuRecords) {
+    const s = r.start_date || '';
+    const e = r.end_date || '';
+    if (s && dayStr >= s) {
+      if (e) { if (dayStr <= e) { target = r; break; } }
+      else { target = r; break; }
+    }
+  }
+
+  if (!target) {
+    muchuAppCancelInline();
+    return;
+  }
+
+  muchuAppShowInlineForm();
+
+  document.querySelectorAll('#muchu-inline-flow .muchu-opt').forEach(el => {
+    el.classList.toggle('active', el.dataset.val === (target.flow || 'medium'));
+  });
+  const pain = (target.symptoms && target.symptoms[0])
+    ? target.symptoms[0].replace('痛感：', '')
+    : '无';
+  document.querySelectorAll('#muchu-inline-pain .muchu-opt').forEach(el => {
+    el.classList.toggle('active', el.dataset.val === pain);
+  });
+  document.querySelectorAll('#muchu-inline-mood .muchu-opt').forEach(el => {
+    el.classList.toggle('active', el.dataset.val === (target.mood || 'OvO'));
+  });
+
+  // ⬇️ 判断这一天能不能改
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const canEdit = (dayStr === todayStr);
+
+  const form = $('muchu-app-inline-form');
+  if (form) {
+    form.style.opacity = canEdit ? '1' : '0.5';
+    form.style.pointerEvents = canEdit ? 'auto' : 'none';
+  }
+
+  // 回显 note
+  const noteEl = $('muchu-inline-note');
+  if (noteEl) {
+    noteEl.value = target.note || '';
+    noteEl.disabled = !canEdit;
+  }
+}
+
+function closeMuchuAppDay() {
+  $('muchu-app-day-popup').classList.remove('open');
+}
+
+/* ============ 纪念日 ============ */
+function muchuAppHasAnniv(day) {
+  const m = day.getMonth() + 1;
+  const d = day.getDate();
+  return muchuAnnivList.some(a => {
+    const ad = new Date(a.date);
+    if (a.repeat_yearly) {
+      return (ad.getMonth() + 1) === m && ad.getDate() === d;
+    } else {
+      return ad.getFullYear() === day.getFullYear() &&
+             (ad.getMonth() + 1) === m && ad.getDate() === d;
+    }
+  });
+}
+function muchuAppGetAnnivs(day) {
+  const m = day.getMonth() + 1;
+  const d = day.getDate();
+  return muchuAnnivList.filter(a => {
+    const ad = new Date(a.date);
+    if (a.repeat_yearly) {
+      return (ad.getMonth() + 1) === m && ad.getDate() === d;
+    } else {
+      return ad.getFullYear() === day.getFullYear() &&
+             (ad.getMonth() + 1) === m && ad.getDate() === d;
+    }
+  });
+}
+async function openAnnivManager() {
+  await muchuAppLoadData();
+  renderAnnivList();
+  $('anniv-name').value = '';
+  $('anniv-date').value = new Date().toISOString().slice(0, 10);
+  $('anniv-text').value = '';
+  muchuAnnivRepeat = true;
+  updateAnnivSwitch();
+  $('anniv-popup').classList.add('open');
+}
+function closeAnnivManager() {
+  $('anniv-popup').classList.remove('open');
+}
+function toggleAnnivRepeat() {
+  muchuAnnivRepeat = !muchuAnnivRepeat;
+  updateAnnivSwitch();
+}
+function updateAnnivSwitch() {
+  const el = $('anniv-repeat-switch');
+  if (el) el.classList.toggle('on', muchuAnnivRepeat);
+}
+function renderAnnivList() {
+  const list = $('anniv-list');
+  list.innerHTML = '';
+  if (muchuAnnivList.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:rgba(0,0,0,0.3);font-size:12px;padding:12px 0">还没有纪念日</div>';
+    return;
+  }
+  muchuAnnivList.forEach(a => {
+    const item = document.createElement('div');
+    item.className = 'anniv-item';
+    const info = document.createElement('div');
+    info.className = 'anniv-item-info';
+    const nm = document.createElement('div');
+    nm.className = 'anniv-item-name';
+    nm.textContent = a.name || '';
+    const dt = document.createElement('div');
+    dt.className = 'anniv-item-date';
+    dt.textContent = a.date + (a.repeat_yearly ? ' · 每年' : '');
+    info.appendChild(nm);
+    info.appendChild(dt);
+    const del = document.createElement('button');
+    del.className = 'anniv-item-del';
+    del.textContent = '×';
+    del.onclick = () => deleteAnniv(a.id);
+    item.appendChild(info);
+    item.appendChild(del);
+    list.appendChild(item);
+  });
+}
+async function saveAnniv() {
+  const name = $('anniv-name').value.trim();
+  const date = $('anniv-date').value;
+  const text = $('anniv-text').value.trim();
+  if (!name) { alert('请填写名称'); return; }
+  if (!date) { alert('请选择日期'); return; }
+  try {
+    const { error } = await supabaseClient.from('anniversaries').insert({
+      name, date, text, repeat_yearly: muchuAnnivRepeat
+    });
+    if (error) throw error;
+    await muchuAppLoadData();
+    renderAnnivList();
+    muchuAppRenderCalendar();
+    $('anniv-name').value = '';
+    $('anniv-text').value = '';
+  } catch (e) {
+    alert('保存失败：' + e.message);
+  }
+}
+async function deleteAnniv(id) {
+  if (!confirm('删除这个纪念日？')) return;
+  try {
+    const { error } = await supabaseClient
+      .from('anniversaries').delete().eq('id', id);
+    if (error) throw error;
+    await muchuAppLoadData();
+    renderAnnivList();
+    muchuAppRenderCalendar();
+  } catch (e) {
+    alert('删除失败：' + e.message);
+  }
+}
+function closeAnnivDetail() {
+  $('anniv-detail-popup').classList.remove('open');
+}
+
+async function muchuAppToggleRecord() {
+  muchuSelectedDate = new Date().toISOString().slice(0, 10);
+  if (muchuAppIsInPeriod()) {
+    await muchuAppEndPeriod();
+    muchuAppShowInlineForm();
+    muchuAppLoadCurrentDayRecord();
+  } else {
+    await muchuAppStartPeriod();
+  }
+}
+
+async function muchuAppStartPeriod() {
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const { error } = await supabaseClient.from('period_records').insert({
+      user_id: 'her', start_date: today, end_date: null,
+      flow: 'medium', mood: 'OvO', note: '', symptoms: ['痛感：无']
+    });
+    if (error) throw error;
+    await muchuAppLoadData();
+    muchuAppRenderCalendar();
+    muchuAppUpdateButton();
+    muchuAppShowInlineForm();
+    muchuAppLoadCurrentDayRecord();
+  } catch (e) {
+    alert('保存失败：' + e.message);
+  }
+}
+
+function muchuAppLoadCurrentDayRecord() {
+  const today = new Date().toISOString().slice(0, 10);
+  let target = null;
+  for (const r of muchuRecords) {
+    if (r.start_date === today) { target = r; break; }
+  }
+  if (!target) return;
+
+  document.querySelectorAll('#muchu-inline-flow .muchu-opt').forEach(el => {
+    el.classList.toggle('active', el.dataset.val === (target.flow || 'medium'));
+  });
+  const pain = (target.symptoms && target.symptoms[0]) ? target.symptoms[0].replace('痛感：', '') : '无';
+  document.querySelectorAll('#muchu-inline-pain .muchu-opt').forEach(el => {
+    el.classList.toggle('active', el.dataset.val === pain);
+  });
+  document.querySelectorAll('#muchu-inline-mood .muchu-opt').forEach(el => {
+    el.classList.toggle('active', el.dataset.val === (target.mood || 'OvO'));
+  });
+}
+
+function muchuAppShowInlineForm() {
+  const form = $('muchu-app-inline-form');
+  if (form) form.style.display = 'block';
+}
+
+function muchuAppCancelInline() {
+  const form = $('muchu-app-inline-form');
+  if (form) form.style.display = 'none';
+}
+
+function muchuAppIsInPeriod() {
+  const today = new Date();
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  for (const r of muchuRecords) {
+    if (!r.start_date) continue;
+    const s = new Date(r.start_date);
+    const sDate = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+    if (r.end_date) {
+      const e = new Date(r.end_date);
+      const eDate = new Date(e.getFullYear(), e.getMonth(), e.getDate());
+      if (todayDate >= sDate && todayDate <= eDate) return true;
+    } else {
+      if (todayDate >= sDate) return true;
+    }
+  }
+  return false;
+}
+
+function muchuAppUpdateButton() {
+  const btn = $('muchu-app-add-record');
+  if (!btn) return;
+  btn.textContent = muchuAppIsInPeriod() ? '结束经期' : '开始经期';
+}
+
+async function muchuAppEndPeriod() {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let target = null;
+  for (const r of muchuRecords) {
+    if (!r.end_date) { target = r; break; }
+  }
+  if (!target) { alert('没找到可结束的经期记录'); return; }
+
+  try {
+    const { error } = await supabaseClient.from('period_records')
+      .update({ end_date: todayStr }).eq('id', target.id);
+    if (error) throw error;
+    await muchuAppLoadData();
+    muchuAppRenderCalendar();
+    muchuAppUpdateButton();
+  } catch (e) {
+    alert('操作失败：' + e.message);
+  }
+}
+
+// 选项自动保存
+document.addEventListener('click', e => {
+  const opt = e.target.closest('.muchu-opt');
+  if (!opt) return;
+  const parent = opt.parentElement;
+  if (!parent || !parent.classList.contains('muchu-inline-options')) return;
+  parent.querySelectorAll('.muchu-opt').forEach(el => el.classList.remove('active'));
+  opt.classList.add('active');
+  muchuAppSaveOptions();
+});
+
+// note 输入时自动保存（延迟 800ms）
+let muchuNoteTimer = null;
+document.addEventListener('input', e => {
+  if (e.target.id !== 'muchu-inline-note') return;
+  if (muchuNoteTimer) clearTimeout(muchuNoteTimer);
+  muchuNoteTimer = setTimeout(() => {
+    muchuAppSaveOptions();
+  }, 800);
+});
+
+async function muchuAppSaveOptions() {
+  const dayStr = muchuSelectedDate || new Date().toISOString().slice(0, 10);
+
+  // 只能改今天
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  if (dayStr !== todayStr) return;
+
+  let target = null;
+  for (const r of muchuRecords) {
+    const s = r.start_date || '';
+    const e = r.end_date || '';
+    if (s && dayStr >= s) {
+      if (e) { if (dayStr <= e) { target = r; break; } }
+      else { target = r; break; }
+    }
+  }
+  if (!target) return;
+
+  const flowEl = document.querySelector('#muchu-inline-flow .muchu-opt.active');
+  const painEl = document.querySelector('#muchu-inline-pain .muchu-opt.active');
+  const moodEl = document.querySelector('#muchu-inline-mood .muchu-opt.active');
+  const noteEl = $('muchu-inline-note');
+
+  const flow = flowEl ? flowEl.dataset.val : 'medium';
+  const pain = painEl ? painEl.dataset.val : '无';
+  const mood = moodEl ? moodEl.dataset.val : 'OvO';
+  const note = noteEl ? noteEl.value.trim() : '';
+
+  try {
+    const { error } = await supabaseClient.from('period_records')
+      .update({ flow, mood, note, symptoms: ['痛感：' + pain] }).eq('id', target.id);
+    if (error) throw error;
+    target.flow = flow;
+    target.mood = mood;
+    target.note = note;
+    target.symptoms = ['痛感：' + pain];
+  } catch (e) {
+    console.error('保存失败:', e);
+  }
+}
+
+// ============ 启动 ============
+let muchuRefreshTimer = null;
+/* ============ 留言弹窗 ============ */
+let muchuMsgQueue = [];
+
+async function muchuCheckMessages() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('love_messages')
+      .select('*')
+      .eq('to_who', '小黄')
+      .eq('read_by_recipient', false)
+      .order('created_at', { ascending: true });
+    if (error) { console.error(error); return; }
+    muchuMsgQueue = data || [];
+    if (muchuMsgQueue.length > 0) {
+      muchuShowNextMsg();
+    }
+  } catch (e) {
+    console.error('留言加载失败:', e);
+  }
+}
+
+function muchuShowNextMsg() {
+  if (muchuMsgQueue.length === 0) {
+    $('muchu-msg-popup').classList.remove('open');
+    return;
+  }
+  const m = muchuMsgQueue[0];
+  $('muchu-msg-to').textContent = 'To ' + (m.to_who || '小黄') + '：';
+  $('muchu-msg-content').textContent = m.content || '';
+  $('muchu-msg-sign').textContent = m.from_who || '';
+  $('muchu-msg-popup').classList.add('open');
+}
+
+async function muchuMsgNext() {
+  if (muchuMsgQueue.length === 0) {
+    $('muchu-msg-popup').classList.remove('open');
+    return;
+  }
+  const m = muchuMsgQueue[0];
+  // 标记已读
+  try {
+    await supabaseClient
+      .from('love_messages')
+      .update({ read_by_recipient: true })
+      .eq('id', m.id);
+  } catch (e) {
+    console.error('标记已读失败:', e);
+  }
+  muchuMsgQueue.shift();
+  muchuShowNextMsg();
+}
+async function muchuSilentRefresh() {
+  await muchuAppLoadData();
+  muchuAppRenderCalendar();
+  muchuAppUpdateButton();
+  // 如果当前没有弹窗，查一下有没有新留言
+  if (!$('muchu-msg-popup').classList.contains('open')) {
+    muchuCheckMessages();
+  }
+}
+
+function startMuchuAutoRefresh() {
+  if (muchuRefreshTimer) clearInterval(muchuRefreshTimer);
+  muchuRefreshTimer = setInterval(() => {
+    muchuSilentRefresh();
+  }, 30000);  // 30 秒刷新一次
+}
+
+if (checkLogin()) {
+  showApp();
+  startMuchuAutoRefresh();
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    muchuSilentRefresh();
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主控</title>
+<script src="./lib/supabase-js-2.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*::-webkit-scrollbar{display:none}
+*{scrollbar-width:none;-ms-overflow-style:none}
+html,body{min-height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:#f5f5f7;
+  color:#1d1d1f;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+header{padding:28px 32px 0;max-width:1200px;margin:0 auto}
+header h1{font-size:28px;font-weight:600;letter-spacing:-0.5px;color:#1d1d1f}
+header .sub{font-size:13px;color:#86868b;margin-top:4px;letter-spacing:0.3px}
+
+#tabs{max-width:1200px;margin:24px auto 0;padding:0 32px;display:flex;gap:8px;flex-wrap:wrap}
+.tab{
+  padding:9px 20px;border-radius:22px;background:#fff;color:#1d1d1f;
+  font-size:14px;letter-spacing:0.3px;cursor:pointer;border:none;
+  font-family:inherit;transition:all 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.04);
+}
+.tab:hover{background:#f0f0f2}
+.tab.active{background:#1d1d1f;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+
+#content{max-width:1200px;margin:0 auto;padding:24px 32px 80px}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}
+
+.card{
+  background:#fff;border-radius:16px;overflow:hidden;
+  box-shadow:0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+  transition:all 0.2s;cursor:pointer;
+}
+.card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.06)}
+.card .img{
+  width:100%;aspect-ratio:4/3;background:#f0f0f2;
+  background-size:cover;background-position:center;
+  display:flex;align-items:center;justify-content:center;
+  color:#c7c7cc;font-size:13px;letter-spacing:0.3px;
+}
+.card .info{padding:12px 16px 14px}
+.card .name{font-size:14px;font-weight:500;color:#1d1d1f;letter-spacing:0.2px;margin-bottom:2px}
+.card .desc{font-size:12px;color:#86868b;letter-spacing:0.2px;line-height:1.4}
+.card .val{font-size:22px;font-weight:600;color:#1d1d1f;letter-spacing:-0.5px;padding:16px 16px 8px}
+.card .val-unit{font-size:13px;color:#86868b;font-weight:400;margin-left:4px}
+.card .icon-big{
+  width:100%;aspect-ratio:4/3;
+  display:flex;align-items:center;justify-content:center;
+  font-size:48px;color:#86868b;background:#f5f5f7;
+}
+.empty{
+  grid-column:1/-1;text-align:center;color:#86868b;
+  font-size:14px;padding:60px 0;letter-spacing:0.3px;
+}
+
+/* 通用弹窗 */
+.mask{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,0.4);z-index:100;display:none;
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+.mask.show{display:block}
+.popup{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:#fff;border-radius:20px;padding:28px;width:520px;max-width:92vw;
+  max-height:88vh;z-index:101;display:none;flex-direction:column;gap:18px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.2);
+}
+.popup.show{display:flex}
+.popup h3{font-size:18px;font-weight:600;color:#1d1d1f;letter-spacing:-0.3px}
+.popup .target{font-size:13px;color:#86868b;margin-top:-12px}
+.popup .preview{
+  width:100%;aspect-ratio:4/3;border-radius:12px;background:#f5f5f7;
+  background-size:contain;background-repeat:no-repeat;background-position:center;
+  border:1px dashed #d2d2d7;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:#86868b;font-size:13px;overflow:hidden;
+}
+.popup .preview:hover{border-color:#0071e3}
+.popup .preview.has-image{border-style:solid;border-color:transparent}
+.popup .btns{display:flex;gap:10px}
+.popup .btns button{
+  flex:1;height:42px;border:none;border-radius:12px;
+  font-size:14px;font-family:inherit;cursor:pointer;letter-spacing:0.2px;
+}
+.popup .btns .cancel{background:#f5f5f7;color:#1d1d1f}
+.popup .btns .cancel:hover{background:#ebebed}
+.popup .btns .save{background:#0071e3;color:#fff}
+.popup .btns .save:hover{background:#0062c4}
+.popup .btns .save:disabled{background:#d2d2d7;cursor:not-allowed}
+
+/* 图标管理弹窗特殊样式 */
+#icon-popup{width:640px}
+#icon-tabs{display:flex;gap:8px;margin-bottom:4px}
+.icon-tab{
+  padding:7px 16px;border-radius:18px;background:#f5f5f7;color:#1d1d1f;
+  font-size:13px;cursor:pointer;border:none;font-family:inherit;
+}
+.icon-tab.active{background:#1d1d1f;color:#fff}
+#icon-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+  max-height:50vh;overflow-y:auto;padding:8px;
+}
+.icon-cell{display:flex;flex-direction:column;align-items:center;gap:6px}
+.icon-cell .box{
+  width:100%;aspect-ratio:1;border-radius:12px;background:#f5f5f7;
+  background-size:contain;background-repeat:no-repeat;background-position:center;
+  border:1px solid #e5e5ea;cursor:pointer;position:relative;
+  display:flex;align-items:center;justify-content:center;
+  color:#c7c7cc;font-size:12px;
+}
+.icon-cell .box:hover{border-color:#0071e3}
+.icon-cell .box .del{
+  position:absolute;top:-6px;right:-6px;
+  width:20px;height:20px;border-radius:50%;
+  background:rgba(0,0,0,0.6);color:#fff;font-size:12px;line-height:20px;text-align:center;
+  cursor:pointer;opacity:0;transition:opacity 0.15s;
+}
+.icon-cell .box:hover .del{opacity:1}
+.icon-cell .label{
+  font-size:12px;color:#1d1d1f;text-align:center;width:100%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  cursor:pointer;padding:2px 4px;border-radius:6px;
+}
+.icon-cell .label:hover{background:#f0f0f2}
+.icon-cell .label-input{
+  font-size:12px;text-align:center;width:100%;border:1px solid #0071e3;
+  border-radius:6px;padding:2px 4px;font-family:inherit;outline:none;
+}
+#icon-add-btn{
+  width:100%;height:42px;border:1px dashed #d2d2d7;border-radius:12px;
+  background:#fff;color:#0071e3;font-size:14px;font-family:inherit;
+  cursor:pointer;margin-top:4px;
+}
+#icon-add-btn:hover{background:#f5f5f7;border-color:#0071e3}
+
+#file-input{display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>主控</h1>
+  <div class="sub">整个项目的后台管理</div>
+</header>
+
+<div id="tabs">
+  <button class="tab active" data-tab="home" onclick="switchTab('home')">主页</button>
+  <button class="tab" data-tab="score" onclick="switchTab('score')">谱谱</button>
+  <button class="tab" data-tab="muchu" onclick="switchTab('muchu')">木初</button>
+  <button class="tab" data-tab="malloc" onclick="switchTab('malloc')">Malloc</button>
+</div>
+
+<div id="content">
+  <div id="grid"></div>
+</div>
+
+<!-- 通用上传弹窗 -->
+<div class="mask" id="upload-mask" onclick="closeUpload()"></div>
+<div class="popup" id="upload-popup">
+  <h3>替换图片</h3>
+  <div class="target" id="upload-target"></div>
+  <div class="preview" id="upload-preview" onclick="document.getElementById('file-input').click()">点击选择图片</div>
+  <div class="btns">
+    <button class="cancel" onclick="closeUpload()">取消</button>
+    <button class="save" id="upload-save" onclick="saveUpload()" disabled>保存</button>
+  </div>
+</div>
+
+<!-- 图标管理弹窗 -->
+<div class="mask" id="icon-mask" onclick="closeIconManager()"></div>
+<div class="popup" id="icon-popup">
+  <h3>图标管理</h3>
+  <div id="icon-tabs">
+    <button class="icon-tab active" data-section="手机版" onclick="switchIconSection('手机版')">手机版</button>
+    <button class="icon-tab" data-section="电脑版" onclick="switchIconSection('电脑版')">电脑版</button>
+  </div>
+  <div id="icon-grid"></div>
+  <button id="icon-add-btn" onclick="openIconAdd()">+ 上传新图标</button>
+  <div class="btns">
+    <button class="cancel" onclick="closeIconManager()">关闭</button>
+  </div>
+</div>
+
+<!-- 图标上传弹窗（带名字输入） -->
+<div class="mask" id="icon-upload-mask" onclick="closeIconUpload()"></div>
+<div class="popup" id="icon-upload-popup">
+  <h3>上传新图标</h3>
+  <div class="target" id="icon-upload-target"></div>
+  <div class="preview" id="icon-upload-preview" onclick="document.getElementById('icon-file-input').click()">点击选择图片</div>
+  <input type="text" id="icon-name-input" placeholder="图标名字（比如：语音 / 表情 / 发送）"
+    style="width:100%;height:42px;border:1px solid #d2d2d7;border-radius:12px;padding:0 14px;font-size:14px;font-family:inherit;outline:none">
+  <div class="btns">
+    <button class="cancel" onclick="closeIconUpload()">取消</button>
+    <button class="save" id="icon-upload-save" onclick="saveIconUpload()" disabled>保存</button>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept="image/*">
+<input type="file" id="icon-file-input" accept="image/*">
+
+<script>
+const SUPABASE_URL = 'https://mulbmncmfeadvrienvqb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_lTxspnB5QDQqpFza_kZmXA_5EspN3y8';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = id => document.getElementById(id);
+
+let currentTab = 'home';
+let configData = null;
+let uploadTargetField = null;
+let uploadTargetIsScore = false;
+let uploadTargetScorePath = null;
+let pendingImage = null;
+
+let currentIconSection = '手机版';
+let iconsData = [];
+let iconPendingImage = null;
+let iconEditId = null;
+
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function getConfig(){
+  const { data, error } = await supabaseClient.from('config').select('*').eq('id',1).single();
+  if (error) { console.error(error); return null; }
+  return data;
+}
+
+async function updateConfig(u){
+  const { error } = await supabaseClient.from('config').update(u).eq('id',1);
+  if (error) console.error(error);
+}
+
+async function uploadToOSS(base64, fileName){
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ base64, fileName })
+  });
+  const d = await res.json();
+  if (!res.ok) throw new Error(d.error || '上传失败');
+  return d.url;
+}
+
+function compressImage(dataUrl, max, q){
+  return new Promise(r => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > max || h > max) {
+        if (w > h) { h = Math.round(h * max / w); w = max; }
+        else { w = Math.round(w * max / h); h = max; }
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      r(c.toDataURL('image/jpeg', q));
+    };
+    img.src = dataUrl;
+  });
+}
+
+function compressPng(dataUrl, max){
+  return new Promise(r => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > max || h > max) {
+        if (w > h) { h = Math.round(h * max / w); w = max; }
+        else { w = Math.round(w * max / h); h = max; }
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      r(c.toDataURL('image/png'));
+    };
+    img.src = dataUrl;
+  });
+}
+
+function switchTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  render();
+}
+
+async function render(){
+  const grid = $('grid');
+  grid.innerHTML = '<div class="empty">加载中…</div>';
+
+  if (currentTab === 'home') {
+    configData = await getConfig();
+    renderHome();
+  } else if (currentTab === 'score') {
+    if (!configData) configData = await getConfig();
+    renderScore();
+  } else if (currentTab === 'muchu') {
+    await renderMuchu();
+  } else if (currentTab === 'malloc') {
+    await renderMalloc();
+  }
+}
+
+/* 主页 */
+function renderHome(){
+  const grid = $('grid');
+  if (!configData) { grid.innerHTML = '<div class="empty">读不到 config 数据</div>'; return; }
+  const c = configData;
+  const cards = [
+    { field:'wallpaper_url', label:'主页壁纸', desc:'index.html 的背景图', url:c.wallpaper_url },
+    { field:'card_url', label:'个人卡片', desc:'About 里点“销售”显示的名片', url:c.card_url },
+    { field:'favicon_url', label:'站点图标', desc:'浏览器标签上的小图标', url:c.favicon_url },
+    { field:'app_icon_url', label:'App 图标', desc:'谱谱打包 App 时用的图标', url:c.app_icon_url },
+    { field:'splash_url', label:'启动图', desc:'App 打开时的闪屏', url:c.splash_url },
+    { field:'app_wallpaper_url', label:'App 壁纸', desc:'手机 App 的背景', url:c.app_wallpaper_url }
+  ];
+  let html = '';
+  cards.forEach(card => {
+    const hasImg = card.url ? `style="background-image:url('${esc(card.url)}')"` : '';
+    html += `
+      <div class="card" onclick="openUpload('${card.field}', false, '${esc(card.label)}')">
+        <div class="img" ${hasImg}>${card.url ? '' : '点击上传'}</div>
+        <div class="info">
+          <div class="name">${esc(card.label)}</div>
+          <div class="desc">${esc(card.desc)}</div>
+        </div>
+      </div>
+    `;
+  });
+  html += `
+    <div class="card" style="cursor:default">
+      <div class="val">${c.visit_count ?? 0}<span class="val-unit">总浏览</span></div>
+      <div class="info"><div class="name">访客统计</div><div class="desc">今日 ${c.today_count ?? 0}</div></div>
+    </div>
+    <div class="card" style="cursor:default">
+      <div class="val">${(c.messages || []).length}<span class="val-unit">条</span></div>
+      <div class="info"><div class="name">留言板</div><div class="desc">config.messages</div></div>
+    </div>
+    <div class="card" style="cursor:default">
+      <div class="val">${(c.thanks_list || []).length}<span class="val-unit">人</span></div>
+      <div class="info"><div class="name">感谢名单</div><div class="desc">config.thanks_list</div></div>
+    </div>
+  `;
+  grid.innerHTML = html;
+}
+
+/* 谱谱 */
+function renderScore(){
+  const grid = $('grid');
+  const scores = (configData && configData.scores) || {};
+  const cats = ['吉他','光遇','钢琴'];
+  let html = '';
+  cats.forEach(cat => {
+    const items = scores[cat] || [];
+    html += `
+      <div class="card" style="cursor:default;grid-column:1/-1;background:transparent;box-shadow:none;padding:8px 0 0">
+        <div class="info" style="padding:8px 0">
+          <div class="name" style="font-size:16px">${esc(cat)}</div>
+          <div class="desc">${items.length} 首谱子</div>
+        </div>
+      </div>
+    `;
+    if (items.length === 0) {
+      html += `<div class="empty" style="padding:20px 0;font-size:13px">还没有谱子</div>`;
+    } else {
+      items.forEach((it, idx) => {
+        const cover = (it.images && it.images[0]) || '';
+        const hasImg = cover ? `style="background-image:url('${esc(cover)}')"` : '';
+        html += `
+          <div class="card" onclick="openUpload('${cat}', true, '${esc(cat)} · ${esc(it.name)}', ${idx})">
+            <div class="img" ${hasImg}>${cover ? '' : '点击上传封面'}</div>
+            <div class="info">
+              <div class="name">${esc(it.name || '未命名')}</div>
+              <div class="desc">${esc(cat)} · ${(it.images || []).length} 页</div>
+            </div>
+          </div>
+        `;
+      });
+    }
+  });
+  grid.innerHTML = html;
+}
+
+/* 木初 */
+async function renderMuchu(){
+  const grid = $('grid');
+  const [rec, notes, anniv] = await Promise.all([
+    supabaseClient.from('period_records').select('*', { count:'exact', head:true }).eq('user_id','her'),
+    supabaseClient.from('sweet_notes').select('*', { count:'exact', head:true }),
+    supabaseClient.from('anniversaries').select('*', { count:'exact', head:true })
+  ]);
+  const cards = [
+    { val: rec.count ?? 0, name:'周期记录', desc:'period_records' },
+    { val: anniv.count ?? 0, name:'纪念日', desc:'anniversaries' },
+    { val: notes.count ?? 0, name:'情话', desc:'sweet_notes' }
+  ];
+  let html = '';
+  cards.forEach(c => {
+    html += `
+      <div class="card" style="cursor:default">
+        <div class="val">${c.val}<span class="val-unit">条</span></div>
+        <div class="info"><div class="name">${esc(c.name)}</div><div class="desc">${esc(c.desc)}</div></div>
+      </div>
+    `;
+  });
+  grid.innerHTML = html;
+}
+
+/* Malloc */
+async function renderMalloc(){
+  const grid = $('grid');
+  const [soulRes, emoRes, stiRes] = await Promise.all([
+    supabaseClient.from('soul').select('*').eq('owner','xia').limit(1),
+    supabaseClient.from('emotions').select('*').eq('owner','xia').limit(1),
+    supabaseClient.from('stickers').select('*', { count:'exact', head:true }).eq('owner','xia')
+  ]);
+  const soul = soulRes.data?.[0];
+  const emo = emoRes.data?.[0];
+
+  let html = '';
+  html += `
+    <div class="card" style="cursor:default">
+      <div class="val" style="font-size:18px">${esc(soul?.name || '—')} · ${esc(soul?.nickname || '')}</div>
+      <div class="info"><div class="name">她的名字</div><div class="desc">soul 表</div></div>
+    </div>
+    <div class="card" style="cursor:default">
+      <div class="val">${emo?.intimacy ?? 0}<span class="val-unit">/ 100</span></div>
+      <div class="info"><div class="name">亲密度</div><div class="desc">emotions.intimacy</div></div>
+    </div>
+    <div class="card" style="cursor:default">
+      <div class="val">${emo?.joy ?? 0}<span class="val-unit">/ 100</span></div>
+      <div class="info"><div class="name">开心</div><div class="desc">emotions.joy</div></div>
+    </div>
+    <div class="card" style="cursor:default">
+      <div class="val">${emo?.jealousy ?? 0}<span class="val-unit">/ 100</span></div>
+      <div class="info"><div class="name">醋意</div><div class="desc">emotions.jealousy</div></div>
+    </div>
+    <div class="card" style="cursor:default">
+      <div class="val">${stiRes.count ?? 0}<span class="val-unit">张</span></div>
+      <div class="info"><div class="name">表情包</div><div class="desc">stickers 表</div></div>
+    </div>
+    <div class="card" style="cursor:default">
+      <div class="val" style="font-size:16px">${esc(emo?.mood || '—')}</div>
+      <div class="info"><div class="name">当前心情</div><div class="desc">emotions.mood</div></div>
+    </div>
+  `;
+
+  // 图标管理入口卡片
+  html += `
+    <div class="card" onclick="openIconManager()">
+      <div class="icon-big">🎨</div>
+      <div class="info">
+        <div class="name">图标管理</div>
+        <div class="desc">手机版 · 电脑版</div>
+      </div>
+    </div>
+  `;
+
+  grid.innerHTML = html;
+}
+
+/* ============ 图标管理 ============ */
+async function openIconManager(){
+  currentIconSection = '手机版';
+  document.querySelectorAll('.icon-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.section === '手机版');
+  });
+  $('icon-mask').classList.add('show');
+  $('icon-popup').classList.add('show');
+  await loadIcons();
+}
+
+function closeIconManager(){
+  $('icon-mask').classList.remove('show');
+  $('icon-popup').classList.remove('show');
+}
+
+function switchIconSection(section){
+  currentIconSection = section;
+  document.querySelectorAll('.icon-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.section === section);
+  });
+  renderIcons();
+}
+
+async function loadIcons(){
+  const { data, error } = await supabaseClient
+    .from('icons')
+    .select('*')
+    .eq('section', currentIconSection)
+    .order('created_at', { ascending: true });
+  if (error) { console.error(error); iconsData = []; }
+  else iconsData = data || [];
+  renderIcons();
+}
+
+function renderIcons(){
+  const grid = $('icon-grid');
+  grid.innerHTML = '';
+  if (iconsData.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#86868b;font-size:13px;padding:30px 0">这个分区还没有图标</div>';
+    return;
+  }
+  iconsData.forEach(icon => {
+    const cell = document.createElement('div');
+    cell.className = 'icon-cell';
+    const box = document.createElement('div');
+    box.className = 'box';
+    if (icon.url) {
+      box.style.backgroundImage = `url('${icon.url}')`;
+    } else {
+      box.textContent = '空';
+    }
+    box.onclick = () => openIconReplace(icon);
+    const del = document.createElement('div');
+    del.className = 'del';
+    del.textContent = '×';
+    del.onclick = (e) => { e.stopPropagation(); deleteIcon(icon); };
+    box.appendChild(del);
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = icon.name;
+    label.onclick = () => startEditIconName(icon, label);
+    cell.appendChild(box);
+    cell.appendChild(label);
+    grid.appendChild(cell);
+  });
+}
+
+function startEditIconName(icon, labelEl){
+  const input = document.createElement('input');
+  input.className = 'label-input';
+  input.value = icon.name;
+  labelEl.replaceWith(input);
+  input.focus();
+  input.select();
+  const finish = async () => {
+    const newName = input.value.trim() || icon.name;
+    if (newName !== icon.name) {
+      const { error } = await supabaseClient
+        .from('icons')
+        .update({ name: newName })
+        .eq('id', icon.id);
+      if (error) { alert('改名失败：' + error.message); }
+    }
+    await loadIcons();
+  };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = icon.name; input.blur(); }
+  });
+}
+
+async function deleteIcon(icon){
+  if (!confirm('删除图标「' + icon.name + '」？')) return;
+  const { error } = await supabaseClient.from('icons').delete().eq('id', icon.id);
+  if (error) { alert('删除失败：' + error.message); return; }
+  await loadIcons();
+}
+
+/* 替换已有图标 */
+let replacingIcon = null;
+async function openIconReplace(icon){
+  replacingIcon = icon;
+  // 用通用上传弹窗
+  uploadTargetField = '__icon__';
+  uploadTargetIsScore = false;
+  pendingImage = null;
+
+  $('upload-target').textContent = `图标：${icon.name}（${icon.section}）`;
+  const preview = $('upload-preview');
+  preview.style.backgroundImage = icon.url ? `url('${icon.url}')` : '';
+  preview.classList.toggle('has-image', !!icon.url);
+  preview.textContent = icon.url ? '' : '点击选择图片';
+  $('upload-save').disabled = true;
+  $('upload-mask').classList.add('show');
+  $('upload-popup').classList.add('show');
+}
+
+/* 上传新图标 */
+function openIconAdd(){
+  iconPendingImage = null;
+  const preview = $('icon-upload-preview');
+  preview.style.backgroundImage = '';
+  preview.classList.remove('has-image');
+  preview.textContent = '点击选择图片';
+  $('icon-name-input').value = '';
+  $('icon-upload-save').disabled = true;
+  $('icon-upload-target').textContent = `分区：${currentIconSection}`;
+  $('icon-upload-mask').classList.add('show');
+  $('icon-upload-popup').classList.add('show');
+}
+
+function closeIconUpload(){
+  $('icon-upload-mask').classList.remove('show');
+  $('icon-upload-popup').classList.remove('show');
+  iconPendingImage = null;
+}
+
+$('icon-file-input').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const raw = await new Promise(r => {
+    const fr = new FileReader();
+    fr.onload = ev => r(ev.target.result);
+    fr.readAsDataURL(f);
+  });
+  iconPendingImage = await compressPng(raw, 512);
+  const preview = $('icon-upload-preview');
+  preview.style.backgroundImage = `url('${iconPendingImage}')`;
+  preview.classList.add('has-image');
+  preview.textContent = '';
+  updateIconSaveBtn();
+  e.target.value = '';
+});
+
+$('icon-name-input').addEventListener('input', updateIconSaveBtn);
+
+function updateIconSaveBtn(){
+  const name = $('icon-name-input').value.trim();
+  $('icon-upload-save').disabled = !(iconPendingImage && name);
+}
+
+async function saveIconUpload(){
+  const name = $('icon-name-input').value.trim();
+  if (!iconPendingImage || !name) return;
+  const btn = $('icon-upload-save');
+  btn.disabled = true;
+  btn.textContent = '上传中…';
+  try {
+    const fn = 'icon_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.png';
+    const url = await uploadToOSS(iconPendingImage, fn);
+    const { error } = await supabaseClient.from('icons').insert({
+      section: currentIconSection,
+      name,
+      url
+    });
+    if (error) throw error;
+    closeIconUpload();
+    await loadIcons();
+  } catch (e) {
+    alert('失败：' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '保存';
+  }
+}
+
+/* ============ 通用上传（主页/谱谱） ============ */
+function openUpload(field, isScore, label, scoreIndex){
+  uploadTargetField = field;
+  uploadTargetIsScore = !!isScore;
+  uploadTargetScorePath = isScore ? { cat: field, idx: scoreIndex } : null;
+  pendingImage = null;
+  replacingIcon = null;
+
+  $('upload-target').textContent = '目标：' + label;
+  const preview = $('upload-preview');
+  preview.style.backgroundImage = '';
+  preview.classList.remove('has-image');
+  preview.textContent = '点击选择图片';
+
+  $('upload-save').disabled = true;
+  $('upload-mask').classList.add('show');
+  $('upload-popup').classList.add('show');
+}
+
+function closeUpload(){
+  $('upload-mask').classList.remove('show');
+  $('upload-popup').classList.remove('show');
+  uploadTargetField = null;
+  pendingImage = null;
+  replacingIcon = null;
+}
+
+$('file-input').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const raw = await new Promise(r => {
+    const fr = new FileReader();
+    fr.onload = ev => r(ev.target.result);
+    fr.readAsDataURL(f);
+  });
+  pendingImage = await compressImage(raw, 1600, 0.85);
+  const preview = $('upload-preview');
+  preview.style.backgroundImage = 'url(' + pendingImage + ')';
+  preview.classList.add('has-image');
+  preview.textContent = '';
+  $('upload-save').disabled = false;
+  e.target.value = '';
+});
+
+async function saveUpload(){
+  if (!pendingImage || !uploadTargetField) return;
+  const btn = $('upload-save');
+  btn.disabled = true;
+  btn.textContent = '上传中…';
+
+  try {
+    const fn = 'admin_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.jpg';
+    const url = await uploadToOSS(pendingImage, fn);
+
+    if (uploadTargetField === '__icon__' && replacingIcon) {
+      // 替换图标
+      const { error } = await supabaseClient
+        .from('icons')
+        .update({ url })
+        .eq('id', replacingIcon.id);
+      if (error) throw error;
+      closeUpload();
+      await loadIcons();
+    } else if (!uploadTargetIsScore) {
+      await updateConfig({ [uploadTargetField]: url });
+      closeUpload();
+      configData = await getConfig();
+      render();
+    } else {
+      if (!configData) configData = await getConfig();
+      const scores = configData.scores || {};
+      const { cat, idx } = uploadTargetScorePath;
+      if (!scores[cat]) scores[cat] = [];
+      if (!scores[cat][idx]) scores[cat][idx] = { name:'未命名', images:[] };
+      if (!scores[cat][idx].images) scores[cat][idx].images = [];
+      scores[cat][idx].images[0] = url;
+      await updateConfig({ scores });
+      closeUpload();
+      configData = await getConfig();
+      render();
+    }
+  } catch (e) {
+    alert('失败：' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '保存';
+  }
+}
+
+render();
+</script>
+
+</body>
+</html>

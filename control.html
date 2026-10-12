@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Malloc 面板</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+*::-webkit-scrollbar{display:none}
+*{scrollbar-width:none;-ms-overflow-style:none}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:#0f0f10;
+  color:#ff5252;
+  min-height:100vh;
+  padding:20px;
+}
+.wrap{max-width:1100px;margin:0 auto}
+
+header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:24px;padding-bottom:16px;
+    border-bottom:1px solid #2a2a2e;
+}
+header h1{font-size:20px;font-weight:500;letter-spacing:2px;color:#ff5252}
+header .sub{font-size:12px;color:#ff8a8a;margin-top:4px;opacity:0.8}
+
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:768px){.grid{grid-template-columns:1fr}}
+
+.card{
+  background:#1c1c1e;
+  border:1px solid rgba(255,82,82,0.25);
+  border-radius:12px;
+  padding:18px;
+  box-shadow:0 0 0 1px rgba(255,82,82,0.04), inset 0 1px 0 rgba(255,255,255,0.03);
+}
+.card h2{
+  font-size:13px;font-weight:500;color:#ff5252;
+  letter-spacing:2px;margin-bottom:14px;
+}
+
+/* 状态点 */
+.status-dot{
+  display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:#666;margin-right:6px;vertical-align:middle;
+}
+.status-dot.ok{background:#ff5252;box-shadow:0 0 8px #ff5252}
+.status-dot.err{background:#ff1744;box-shadow:0 0 8px #ff1744}
+
+/* 基本信息 */
+.info-line{
+  display:flex;justify-content:space-between;
+  padding:8px 0;font-size:14px;
+    border-bottom:1px solid #2a2a2e;
+}
+.info-line:last-child{border-bottom:none}
+.info-line .k{color:#ff8a8a;opacity:0.7}
+.info-line .v{color:#ff5252}
+
+/* 情绪条 */
+.mood-bar{margin-bottom:12px}
+.mood-bar:last-child{margin-bottom:0}
+.mood-bar .label{
+  display:flex;justify-content:space-between;
+  font-size:12px;color:#ff8a8a;margin-bottom:5px;
+}
+.mood-bar .label .val{font-weight:500}
+.mood-track{
+  height:6px; background:#2a2a2e;;border-radius:3px;overflow:hidden;
+}
+.mood-fill{
+  height:100%;border-radius:3px;
+  transition:width 0.3s ease;
+}
+
+/* 对话列表 */
+.msg-item{
+  padding:10px 0;  border-bottom:1px solid #2a2a2e;;font-size:13px;
+}
+.msg-item:last-child{border-bottom:none}
+.msg-item .role{font-size:11px;margin-bottom:3px}
+.msg-item .content{color:#ff5252;line-height:1.5;word-break:break-word}
+.msg-item.you .role{color:#ff5252}
+.msg-item.her .role{color:#ff8a8a}
+
+/* 系统日志 */
+.log-box{
+  background:#000;border-radius:8px;
+  padding:12px;font-family:"SF Mono","Menlo","Consolas",monospace;
+  font-size:12px;line-height:1.7;
+  max-height:280px;overflow-y:auto;
+  color:#ff5252;
+    border:1px solid #2a2a2e;
+}
+.log-box .line{color:#ff8a8a}
+.log-box .line.ok{color:#ff5252}
+.log-box .line.err{color:#ff1744}
+.log-box .line.info{color:#ffab91}
+
+
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Malloc 面板</h1>
+      <div class="sub">实时状态</div>
+    </div>
+    <div class="actions">
+      
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>基础状态</h2>
+      <div class="info-line">
+        <span class="k">连接</span>
+        <span class="v" id="s-conn"><span class="status-dot"></span>检查中...</span>
+      </div>
+      <div class="info-line">
+        <span class="k">名字</span>
+        <span class="v" id="s-name">—</span>
+      </div>
+      <div class="info-line">
+        <span class="k">最后互动</span>
+        <span class="v" id="s-last">—</span>
+      </div>
+      <div class="info-line">
+        <span class="k">消息总数</span>
+        <span class="v" id="s-count">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>她此刻</h2>
+      <div class="info-line">
+        <span class="k">今天在做</span>
+        <span class="v" id="s-activity">—</span>
+      </div>
+      <div class="info-line">
+        <span class="k">心情原因</span>
+        <span class="v" id="s-reason">—</span>
+      </div>
+      <div class="info-line">
+        <span class="k">上次事件</span>
+        <span class="v" id="s-event">—</span>
+      </div>
+      <div class="info-line">
+        <span class="k">能量</span>
+        <span class="v" id="s-energy">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <h2>情绪波动</h2>
+    <div class="grid" style="gap:24px">
+      <div>
+        <div class="mood-bar">
+          <div class="label"><span>亲密度</span><span class="val" id="v-intimacy">0</span></div>
+          <div class="mood-track"><div class="mood-fill" id="b-intimacy" style="width:0%;background:#ff5252"></div></div>
+        </div>
+        <div class="mood-bar">
+          <div class="label"><span>开心</span><span class="val" id="v-joy">0</span></div>
+          <div class="mood-track"><div class="mood-fill" id="b-joy" style="width:0%;background:#ff8a65"></div></div>
+        </div>
+        <div class="mood-bar">
+          <div class="label"><span>想你</span><span class="val" id="v-longing">0</span></div>
+          <div class="mood-track"><div class="mood-fill" id="b-longing" style="width:0%;background:#ff5252"></div></div>
+        </div>
+        <div class="mood-bar">
+          <div class="label"><span>粘人</span><span class="val" id="v-clingy">0</span></div>
+          <div class="mood-track"><div class="mood-fill" id="b-clingy" style="width:0%;background:#e57373"></div></div>
+        </div>
+        <div class="mood-bar">
+          <div class="label"><span>平静</span><span class="val" id="v-calm">0</span></div>
+          <div class="mood-track"><div class="mood-fill" id="b-calm" style="width:0%;background:#ffab91"></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="mood-bar">
+          <div class="label"><span>醋意</span><span class="val" id="v-jealousy">0</span></div>
+          <div class="mood-track"><div class="mood-fill" id="b-jealousy" style="width:0%;background:#ff5252"></div></div>
+        </div>
+        <div class="mood-bar">
+          <div class="label"><span>生气</span><span class="val" id="v-anger">0</span></div>
+          <div class="mood-track"><div class="mood-fill" id="b-anger" style="width:0%;background:#ff1744"></div></div>
+        </div>
+        <div class="mood-bar">
+          <div class="label"><span>难过</span><span class="val" id="v-sadness">0</span></div>
+          <div class="mood-track"><div class="mood-fill" id="b-sadness" style="width:0%;background:#c62828"></div></div>
+        </div>
+        <div class="mood-bar">
+          <div class="label"><span>害怕失去</span><span class="val" id="v-fear">0</span></div>
+          <div class="mood-track"><div class="mood-fill" id="b-fear" style="width:0%;background:#b71c1c"></div></div>
+        </div>
+        <div class="mood-bar">
+          <div class="label"><span>害羞</span><span class="val" id="v-shame">0</span></div>
+          <div class="mood-track"><div class="mood-fill" id="b-shame" style="width:0%;background:#ff8a8a"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="margin:0">最近对话</h2>
+        <button onclick="clearMessages()" style="background:#3a1a1a;  border:1px solid #3a3a3e;color:#ff5252;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit">清空</button>
+      </div>
+      <div id="msg-list" style="max-height:400px;overflow-y:auto">
+        <div style="text-align:center;color:#ff8a8a;font-size:13px;padding:20px;opacity:0.6">加载中...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>系统日志</h2>
+      <div class="log-box" id="log-box"></div>
+    </div>
+  </div>
+</div>
+
+
+
+<script>
+const SUPABASE_URL = 'https://mulbmncmfeadvrienvqb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_lTxspnB5QDQqpFza_kZmXA_5EspN3y8';
+const OWNER = 'xia';
+
+const sbHeaders = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY
+};
+
+function log(msg, type = '') {
+  const box = document.getElementById('log-box');
+  const time = new Date().toLocaleTimeString('zh-CN', {hour12:false});
+  const line = document.createElement('div');
+  line.className = 'line ' + type;
+  line.textContent = '[' + time + '] ' + msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+  while (box.children.length > 50) box.removeChild(box.firstChild);
+}
+
+function setConn(ok, text) {
+  const el = document.getElementById('s-conn');
+  el.innerHTML = '<span class="status-dot ' + (ok ? 'ok' : 'err') + '"></span>' + text;
+}
+
+function setBar(id, value) {
+  const v = Math.max(0, Math.min(100, value ?? 0));
+  document.getElementById('v-' + id).textContent = v;
+  document.getElementById('b-' + id).style.width = v + '%';
+}
+
+function fmtTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return diff + ' 秒前';
+  if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前';
+  return d.toLocaleDateString('zh-CN') + ' ' + d.toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'});
+}
+
+async function clearMessages() {
+  if (!confirm('确定清空所有对话记录？这个不可恢复。')) return;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}`,
+      { method: 'DELETE', headers: sbHeaders }
+    );
+    if (res.ok) {
+      log('对话已清空', 'ok');
+      refresh();
+    } else {
+      log('清空失败 HTTP ' + res.status, 'err');
+    }
+  } catch(e) {
+    log('清空异常: ' + e.message, 'err');
+  }
+}
+
+async function refresh() {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/soul?owner=eq.${OWNER}&limit=1`,
+      { headers: sbHeaders }
+    );
+    if (res.ok) {
+      const arr = await res.json();
+      const s = arr[0];
+      if (s) {
+        document.getElementById('s-name').textContent = s.name + ' · ' + (s.nickname || '');
+        setConn(true, '已连接');
+        log('读到 soul: ' + s.name, 'ok');
+      } else {
+        setConn(false, 'soul 表空');
+        log('soul 表没有 owner=xia 的行', 'err');
+      }
+    } else {
+      setConn(false, 'soul 读取失败 ' + res.status);
+      log('soul 读取失败 HTTP ' + res.status, 'err');
+    }
+  } catch(e) {
+    setConn(false, '网络错误');
+    log('soul 请求异常: ' + e.message, 'err');
+  }
+
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/emotions?owner=eq.${OWNER}&limit=1`,
+      { headers: sbHeaders }
+    );
+    if (res.ok) {
+      const arr = await res.json();
+      const e = arr[0];
+      if (e) {
+        setBar('intimacy', e.intimacy);
+        setBar('joy', e.joy);
+        setBar('longing', e.longing);
+        setBar('clingy', e.clingy);
+        setBar('calm', e.calm);
+        setBar('jealousy', e.jealousy);
+        setBar('anger', e.anger);
+        setBar('sadness', e.sadness);
+        setBar('fear', e.fear);
+        setBar('shame', e.shame);
+
+        document.getElementById('s-last').textContent = fmtTime(e.last_interaction);
+        document.getElementById('s-activity').textContent = e.last_event || '—';
+        document.getElementById('s-reason').textContent = e.mood_reason || '—';
+        document.getElementById('s-event').textContent = e.mood || '—';
+        document.getElementById('s-energy').textContent = (e.energy ?? '—') + '%';
+
+        log('情绪已同步', 'ok');
+      }
+    } else {
+      log('emotions 读取失败 HTTP ' + res.status, 'err');
+    }
+  } catch(e) {
+    log('emotions 请求异常: ' + e.message, 'err');
+  }
+
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=created_at.desc&limit=10`,
+      { headers: sbHeaders }
+    );
+    if (res.ok) {
+      const list = await res.json();
+      const box = document.getElementById('msg-list');
+      if (!list || list.length === 0) {
+        box.innerHTML = '<div style="text-align:center;color:#ff8a8a;font-size:13px;padding:20px;opacity:0.6">还没有对话</div>';
+      } else {
+        box.innerHTML = '';
+        list.reverse().forEach(m => {
+          const item = document.createElement('div');
+          item.className = 'msg-item ' + (m.role === 'user' ? 'you' : 'her');
+          const role = document.createElement('div');
+          role.className = 'role';
+          role.textContent = (m.role === 'user' ? '夏夏' : '哒哒') + ' · ' + fmtTime(m.created_at);
+          const content = document.createElement('div');
+          content.className = 'content';
+          content.textContent = (m.content || '').substring(0, 100);
+          item.appendChild(role);
+          item.appendChild(content);
+          box.appendChild(item);
+        });
+      }
+      document.getElementById('s-count').textContent = list.length + ' 条（最近）';
+      log('读到 ' + list.length + ' 条消息', 'ok');
+    } else {
+      log('messages 读取失败 HTTP ' + res.status, 'err');
+    }
+  } catch(e) {
+    log('messages 请求异常: ' + e.message, 'err');
+  }
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+
+</body>
+</html>
