@@ -448,123 +448,28 @@ body{
   bottom:1vh;font-size:1.6vh;color:var(--c-gray);
 }
 /* ===== 服务 ===== */
-
-.wallet-balance-card{
+.service-card{
   margin:2vh var(--pad-x);
-  background:#fff;
+  background:#2aad67;
   border-radius:1.2vh;
-  padding:4vh var(--pad-x);
-  text-align:center;
+  display:flex;
+  padding:4vh 0;
 }
-.wallet-balance-label{font-size:1.8vh;color:var(--c-gray);margin-bottom:1vh}
-.wallet-balance{font-size:4vh;color:#111;font-weight:500}
-.wallet-list{
-  background:#fff;
-  margin:0 var(--pad-x);
-  border-radius:1.2vh;
-  overflow:hidden;
+.service-item{
+  flex:1;
+  display:flex;flex-direction:column;align-items:center;
+  cursor:pointer;
+  color:#fff;
 }
-.wallet-row{
-  display:flex;align-items:center;
-  padding:2vh var(--pad-x);
-  border-bottom:0.5px solid var(--c-list-line);
+.service-icon{
+  width:5vh;height:5vh;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:1.5vh;
 }
-.wallet-row:last-child{border-bottom:none}
-.wallet-row .wallet-row-note{flex:1;font-size:1.8vh;color:#111}
-.wallet-row .wallet-row-time{font-size:1.4vh;color:var(--c-gray);margin-right:2vw}
-.wallet-row .wallet-row-amount{font-size:1.9vh;font-weight:500}
-.wallet-row .wallet-row-amount.plus{color:#07C160}
-.wallet-row .wallet-row-amount.minus{color:#e74c3c}
-.wallet-add{
-  position:fixed;bottom:3vh;left:50%;transform:translateX(-50%);
-  background:#07C160;color:#fff;
-  padding:1.5vh 6vw;border-radius:2vh;
-  font-size:2vh;cursor:pointer;
-}
-/* ===== 通用弹窗 ===== */
-.mask{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:var(--c-popup-mask);z-index:100;display:none;
-}
-.mask.show{display:block}
-.popup{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  background:var(--c-popup-bg);border-radius:var(--radius-popup);padding:3vh;width:var(--w-popup);max-width:92vw;
-  z-index:101;display:none;flex-direction:column;gap:2vh;
-  box-shadow:0 20px 60px rgba(0,0,0,0.3);
-}
-.popup.show{display:flex}
-.popup h3{font-size:var(--fs-popup-title);font-weight:500;text-align:center;color:var(--c-name)}
-
-#sticker-panel{
-  position:fixed;left:0;right:0;bottom:0;
-  background:var(--c-sticker-bg);border-top:1px solid var(--c-sticker-line);
-  z-index:18;display:none;flex-direction:column;
-  height:var(--h-sticker);padding-bottom:env(safe-area-inset-bottom);
-}
-#sticker-panel.show{display:flex}
-#sticker-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:1vh var(--pad-x);border-bottom:1px solid var(--c-sticker-line);flex-shrink:0;
-  font-size:var(--fs-sticker);color:#666;
-}
-#sticker-header button{
-  background:transparent;border:none;color:var(--c-green);
-  font-size:var(--fs-sticker);font-family:inherit;cursor:pointer;padding:0.5vh 2vw;
-}
-#sticker-grid{
-  flex:1;overflow-y:auto;padding:1.5vh 3vw;
-  display:grid;grid-template-columns:repeat(5,1fr);gap:1vh;
-  align-content:flex-start;
-}
-.sticker-item{
-  position:relative;width:100%;aspect-ratio:1;
-  border-radius:var(--radius-sticker);background:#fff;
-  background-size:cover;background-position:center;
-  cursor:pointer;border:1px solid #eee;
-}
-.sticker-item .del{
-  position:absolute;top:-0.6vh;right:-0.6vh;
-  width:2.4vh;height:2.4vh;
-  background:rgba(0,0,0,0.6);color:#fff;border-radius:50%;
-  font-size:1.5vh;line-height:2.4vh;text-align:center;cursor:pointer;
-  opacity:0;
-}
-.sticker-item:hover .del{opacity:1}
-#sticker-empty{grid-column:1/-1;text-align:center;color:var(--c-gray);font-size:var(--fs-sticker);padding:8vh 0}
-
-#upload-preview{
-  width:100%;aspect-ratio:1;border-radius:var(--radius-btn);background:var(--c-upload-bg);
-  background-size:contain;background-repeat:no-repeat;background-position:center;
-  border:1px dashed #ccc;display:flex;align-items:center;justify-content:center;
-  cursor:pointer;color:var(--c-gray);font-size:var(--fs-sticker);
-}
-#upload-preview.has-image{border-style:solid;border-color:#eee}
-#upload-tags{display:flex;flex-wrap:wrap;gap:1vh}
-.tag-btn{
-  padding:1vh 3vw;border-radius:var(--radius-tag);border:1px solid #e0e0e0;
-  background:#fff;color:#333;font-size:var(--fs-sticker);font-family:inherit;cursor:pointer;
-}
-.tag-btn.active{background:var(--c-green);color:#fff;border-color:var(--c-green)}
-#upload-btns{display:flex;gap:2vw}
-#upload-btns button{
-  flex:1;height:5vh;border:none;border-radius:var(--radius-btn);
-  font-size:var(--fs-bubble);font-family:inherit;cursor:pointer;
-}
-#upload-cancel{background:var(--c-upload-bg);color:#555}
-#upload-save{background:var(--c-green);color:#fff}
-#upload-save:disabled{background:#b8dfc6;cursor:not-allowed}
-
-/* 电脑版限宽 */
-@media (min-width:769px){
-  body{background:#1a1a1a}
-  #list-screen,#chat-screen,#me-screen{max-width:420px;left:50%;transform:translateX(-50%)}
-  #chat-screen{transform:translateX(calc(-50% + 420px))}
-  #chat-screen.active{transform:translateX(-50%)}
-}
-
-/* 聊天屏顶栏不要底边线 */
-#chat-screen .topbar{ border-bottom:none; }
+.service-icon img{width:100%;height:100%;object-fit:contain;display:block;filter:brightness(0) invert(1)}
+.service-icon svg{width:100%;height:100%;stroke:#fff;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.service-label{font-size:2vh;color:#fff}
+.service-balance{font-size:1.7vh;color:rgba(255,255,255,0.8);margin-top:0.5vh}
 </style>
 </head>
 <body>
@@ -702,7 +607,7 @@ body{
       </div>
     </div>
 
-        <!-- 设置 -->
+    <!-- 设置 -->
     <div id="pane-settings" style="display:none;min-height:100%;background:#ededed">
       <div class="sub-topbar">
         <div class="sub-back" onclick="closeSettings()">
@@ -728,7 +633,8 @@ body{
         </div>
       </div>
     </div>
-        <!-- 钱包 -->
+
+    <!-- 钱包 -->
     <div id="pane-wallet" style="display:none;min-height:100%;background:#ededed">
       <div class="sub-topbar">
         <div class="sub-back" onclick="closeWallet()">
@@ -759,7 +665,7 @@ body{
       </div>
     </div>
 
-     <!-- 服务 -->
+    <!-- 服务 -->
     <div id="pane-service" style="display:none;min-height:100%;background:#ededed">
       <div class="sub-topbar">
         <div class="sub-back" onclick="closeService()">
@@ -802,6 +708,23 @@ body{
 
   <div id="tabbar">
     <div class="tab-item active" data-tab="wechat" onclick="switchTab('wechat')">
+      <img class="tab-icon" data-icon="消息" data-icon-active="消息选中" alt="">
+      <div class="label">微信</div>
+    </div>
+    <div class="tab-item" data-tab="contacts" onclick="switchTab('contacts')">
+      <img class="tab-icon" data-icon="通讯录" data-icon-active="通讯录选中" alt="">
+      <div class="label">通讯录</div>
+    </div>
+    <div class="tab-item" data-tab="discover" onclick="switchTab('discover')">
+      <img class="tab-icon" data-icon="发现" data-icon-active="发现选中" alt="">
+      <div class="label">发现</div>
+    </div>
+    <div class="tab-item" data-tab="me" onclick="switchTab('me')">
+      <img class="tab-icon" data-icon="我的" data-icon-active="我的选中" alt="">
+      <div class="label">我</div>
+    </div>
+  </div>
+</div>
       <img class="tab-icon" data-icon="消息" data-icon-active="消息选中" alt="">
       <div class="label">微信</div>
     </div>
@@ -1173,28 +1096,6 @@ async function saveSoulEdit(){
   } catch(e){ alert('保存失败'); }
 }
 /* ===== 服务 ===== */
-.service-card{
-  margin:2vh var(--pad-x);
-  background:#2aad67;
-  border-radius:1.2vh;
-  display:flex;
-  padding:4vh 0;
-}
-.service-item{
-  flex:1;
-  display:flex;flex-direction:column;align-items:center;
-  cursor:pointer;
-  color:#fff;
-}
-.service-icon{
-  width:5vh;height:5vh;
-  display:flex;align-items:center;justify-content:center;
-  margin-bottom:1.5vh;
-}
-.service-icon img{width:100%;height:100%;object-fit:contain;display:block;filter:brightness(0) invert(1)}
-.service-icon svg{width:100%;height:100%;stroke:#fff;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.service-label{font-size:2vh;color:#fff}
-.service-balance{font-size:1.7vh;color:rgba(255,255,255,0.8);margin-top:0.5vh}}
 /* ===== 钱包 ===== */
 let walletList = [];
 
