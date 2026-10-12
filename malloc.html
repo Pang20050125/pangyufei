@@ -448,37 +448,7 @@ body{
   bottom:1vh;font-size:1.6vh;color:var(--c-gray);
 }
 /* ===== 服务 ===== */
-.sub-more{
-  margin-left:auto;
-  width:3vh;height:3vh;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;
-  transform:translateY(2.5vh);
-}
-.sub-more svg{width:2.8vh;height:2.8vh}
-.service-card{
-  margin:2vh var(--pad-x);
-  background:#2ecc71;
-  border-radius:1.2vh;
-  display:flex;
-  padding:4vh 0;
-}
-.service-item{
-  flex:1;
-  display:flex;flex-direction:column;align-items:center;
-  cursor:pointer;
-  color:#fff;
-}
-.service-icon{
-  width:5vh;height:5vh;
-  display:flex;align-items:center;justify-content:center;
-  margin-bottom:1.5vh;
-}
-.service-icon img{width:100%;height:100%;object-fit:contain;display:block;filter:brightness(0) invert(1)}
-.service-icon svg{width:100%;height:100%;stroke:#fff;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.service-label{font-size:2vh;color:#fff}
-.service-balance{font-size:1.7vh;color:rgba(255,255,255,0.8);margin-top:0.5vh}
-/* ===== 钱包 ===== */
+
 .wallet-balance-card{
   margin:2vh var(--pad-x);
   background:#fff;
@@ -1261,6 +1231,8 @@ function renderWallet(){
     else balance -= Number(w.amount);
   });
   document.getElementById('wallet-balance').textContent = '¥' + balance.toFixed(2);
+     const svcEl = document.getElementById('service-balance');
+  if (svcEl) svcEl.textContent = '¥' + balance.toFixed(2);
 
   const listEl = document.getElementById('wallet-list');
   listEl.innerHTML = '';
