@@ -1173,26 +1173,6 @@ async function saveSoulEdit(){
   } catch(e){ alert('保存失败'); }
 }
 /* ===== 服务 ===== */
-let walletData = { balance: 0 };
-
-async function loadWallet(){
-  try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/config?id=eq.1&select=wallet`,
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
-    );
-    const arr = await res.json();
-    if (Array.isArray(arr) && arr[0] && arr[0].wallet) {
-      walletData = arr[0].wallet;
-    }
-    renderWallet();
-  } catch(e){ console.error(e); }
-}
-function renderWallet(){
-  const el = document.getElementById('service-balance');
-  if (el) el.textContent = '¥' + (walletData.balance || 0).toFixed(2);
-}
-
 function openService(){
   document.getElementById('pane-me').style.display = 'none';
   document.getElementById('pane-service').style.display = 'block';
