@@ -892,6 +892,10 @@ body{
 </div>
 
 <input type="file" id="avatar-file" accept="image/*">
+<!-- 相册：选图 -->
+<input type="file" id="album-file" accept="image/*">
+<!-- 拍摄：调摄像头 -->
+<input type="file" id="camera-file" accept="image/*" capture="environment">
 <input type="file" id="sticker-file" accept="image/*">
 
 <script>
@@ -917,8 +921,16 @@ let pendingStickerTag = null;
 /* ===== 图标 ===== */
 /* ===== 加号面板 ===== */
 function plusClick(name){
-  if (name === '相册') { alert('相册 还没做'); return; }
-  if (name === '拍摄') { alert('拍摄 还没做'); return; }
+  if (name === '相册') {
+    document.getElementById('plus-panel').classList.remove('show');
+    document.getElementById('album-file').click();
+    return;
+  }
+  if (name === '拍摄') {
+    document.getElementById('plus-panel').classList.remove('show');
+    document.getElementById('camera-file').click();
+    return;
+  }
   if (name === '位置') { alert('位置 还没做'); return; }
   if (name === '音乐') { alert('音乐 还没做'); return; }
   if (name === '礼物') { alert('礼物 还没做'); return; }
@@ -1323,6 +1335,126 @@ async function saveWalletAdd(){
     loadWallet();
   } catch(e){ alert('保存失败'); }
 }
+/* ===== 图片上传（相册 / 拍摄共用） ===== */
+async function handlePickImage(file) {
+  if (!file) return;
+
+  // 1. 压缩图片（最长边 1600px，质量 0.85）
+  const raw = await new Promise(r => {
+    const fr = new FileReader();
+    fr.onload = ev => r(ev.target.result);
+    fr.readAsDataURL(file);
+  });
+  const compressed = await compressImage(raw, 1600, 0.85);
+
+  // 2. 上传到 OSS（走 /api/upload）
+  let url = '';
+  try {
+    const fileName = 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.jpg';
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base64: compressed, fileName })
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || '上传失败');
+    url = d.url;
+  } catch (e) {
+    alert('图片上传失败：' + e.message);
+    return;
+  }
+
+  // 3. 聊天里显示图片气泡
+  appendImage('you', url);
+
+  // 4. 存进 messages
+  fetch(`${SUPABASE_URL}/rest/v1/messages`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify([{ owner: OWNER, role: 'user', content: '[图片]' + url }])
+  }).catch(e => console.error(e));
+
+  // 5. 触发送消息流程（让她回）
+  // 简单做法：把图片当一条消息，调用 chat
+  try {
+    headerName.textContent = '对方正在输入';
+    headerName.style.fontSize = '1.8vh';
+    const loc = await getLocation();
+    const res2 = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: '[图片]' + url, owner: OWNER, lat: loc.lat, lon: loc.lon })
+    });
+    const data = await res2.json();
+    const replyText = data.reply || '……';
+    const parts = replyText.split(/\n+/).map(s => s.trim()).filter(Boolean);
+    for (let i = 0; i < parts.length; i++) {
+      if (i > 0) await new Promise(r => setTimeout(r, 600 + Math.random() * 400));
+      const row = document.createElement('div');
+      row.className = 'msg-row her';
+      row.appendChild(makeAvatar('her'));
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = parts[i];
+      row.appendChild(bubble);
+      chatBody.appendChild(row);
+      scrollBottom();
+    }
+    if (data.sticker) {
+      await new Promise(r => setTimeout(r, 600));
+      appendSticker('her', data.sticker);
+    }
+  } catch(e) {
+    console.error(e);
+  } finally {
+    headerName.textContent = '哒哒';
+    headerName.style.fontSize = '';
+    loadListTime();
+  }
+}
+
+/* ===== 图片压缩 ===== */
+function compressImage(dataUrl, max, q) {
+  return new Promise(r => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > max || h > max) {
+        if (w > h) { h = Math.round(h * max / w); w = max; }
+        else { w = Math.round(w * max / h); h = max; }
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      r(c.toDataURL('image/jpeg', q));
+    };
+    img.src = dataUrl;
+  });
+}
+
+/* ===== 图片气泡 ===== */
+function appendImage(who, url) {
+  const row = document.createElement('div');
+  row.className = 'msg-row ' + who;
+  row.appendChild(makeAvatar(who));
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  const img = document.createElement('img');
+  img.src = url;
+  img.style.maxWidth = '100%';
+  img.style.maxHeight = '30vh';
+  img.style.borderRadius = '0.5vh';
+  img.style.display = 'block';
+  bubble.appendChild(img);
+  row.appendChild(bubble);
+  chatBody.appendChild(row);
+  scrollBottom();
+}
 function notReady(n){ alert(n + ' 还没做'); }
 function switchTab(name){
   if (name === 'contacts' || name === 'discover'){
@@ -1630,6 +1762,7 @@ async function loadHistory(){
       const c = m.content || '';
       const who = m.role === 'user' ? 'you' : 'her';
       if (c.startsWith('[表情]')) appendSticker(who, c.slice(3));
+      else if (c.startsWith('[图片]')) appendImage(who, c.slice(3));
       else appendMsg(who, c);
     });
     scrollBottom();
@@ -1798,6 +1931,15 @@ inputMobile.addEventListener('blur', () => {
     body.style.paddingBottom = '';
     setTimeout(scrollBottom, 100);
   }, 200);
+});
+/* 相册 / 拍摄 选图后触发上传 */
+document.getElementById('album-file').addEventListener('change', e => {
+  handlePickImage(e.target.files[0]);
+  e.target.value = '';
+});
+document.getElementById('camera-file').addEventListener('change', e => {
+  handlePickImage(e.target.files[0]);
+  e.target.value = '';
 });
 inputMobile.addEventListener('input', updateSendState);
 inputMobile.addEventListener('keydown', e => {
