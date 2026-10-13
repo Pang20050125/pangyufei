@@ -245,8 +245,8 @@ body{
 .bubble.bubble-image::before{display:none !important}
 .bubble.bubble-image img{max-height:30vh;border-radius:1vh;display:block}
 .location-card{
-  width:52vw;
-  max-width:52vw;
+  width:60vw;
+  max-width:60vw;
   background:#ffffff;
   border-radius:0.8vh;
   overflow:hidden;
@@ -267,11 +267,14 @@ body{
   width:100%;
   height:14vh;
   background:#e8e8e8;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:1.4vh;
-  color:#999999;
+  display:block;
+  overflow:hidden;
+}
+.location-card .loc-map img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
 }
 .bubble.sticker{background:transparent !important;padding:0 !important;max-width:var(--sz-sticker-max)}
 .bubble.sticker img{max-width:var(--sz-sticker-max);max-height:var(--sz-sticker-max)}
@@ -1736,7 +1739,10 @@ function appendLocation(who, card){
 
   const map = document.createElement('div');
   map.className = 'loc-map';
-  map.textContent = '地图';
+  const mapImg = document.createElement('img');
+  mapImg.src = `/api/staticmap?lat=${card.lat}&lon=${card.lon}`;
+  mapImg.alt = '地图';
+  map.appendChild(mapImg);
 
   box.appendChild(n);
   box.appendChild(sub);
