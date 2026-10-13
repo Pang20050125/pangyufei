@@ -169,6 +169,18 @@ export default async function handler(req, res) {
       }
     }
 
+    // ===== 位置理解 =====
+    let locationText = '';
+    if (content.startsWith('[位置]')) {
+      try {
+        const card = JSON.parse(content.slice(4));
+        const placeName = card.name || '一个地方';
+        locationText = placeName + '（' + card.lat + ', ' + card.lon + '）';
+      } catch(e) {
+        locationText = '';
+      }
+    }
+
     // ===== 4. 拼 prompt =====
     const memoryText = memories.length > 0
       ? memories.map(m => '- ' + (m.content || '')).join('\n')
@@ -251,6 +263,7 @@ ${Object.entries(dislikes).map(([cat, items]) => {
 ${cityStr ? '她在：' + cityStr : ''}
 ${weatherStr ? '天气：' + weatherStr : ''}
 ${imageDescription ? '【夏夏刚发了一张图】\n图片内容：' + imageDescription + '\n你要自然地回应这张图。' : ''}
+${locationText ? '【夏夏刚发了一个位置】\n位置：' + locationText + '\n你要自然地回应，比如问她在哪、说要去找她、关心她在做什么。' : ''}
 
 【你今天在做的事】
 ${todayActivity}
@@ -377,11 +390,12 @@ ${emotion?.mood_reason ? '原因：' + emotion.mood_reason : ''}
 同时判断：
 - mood：正常 normal；开心 > 70 用 happy；粘人 > 70 用 clingy；平静 > 70 用 quiet；醋意 > 60 用 upset
 - mood_reason：一句话说明她自己的心情原因，不超过 15 字。
-  ⚠️ 必须用她的第一人称视角，主语是她自己。
-  ⚠️ 不要写「她说」「他说」这种转述句。
+  ⚠️ 必须从她自己的视角写，不要复述用户说了什么。
+  ⚠️ 不要出现「她说」「他说」「宝宝说」这种转述。
   ⚠️ 不要描述夏夏的心情，只写她自己的。
-  好的例子：「因为夏夏来消息了」「今天有点安静」「想夏夏了」「被夸了有点开心」
-  坏的例子：「因为她说忙着还想着我」（视角混乱）「夏夏很开心」（写成夏夏的心情了）
+  ⚠️ 不要直接引用用户的原话，用她的感受代替。
+  好的例子：「因为夏夏来消息了」「今天有点安静」「想夏夏了」「被夸了有点开心」「有点吃醋」
+  坏的例子：「因为她说忙着还想着我」「宝宝说只对我好」「夏夏很开心」「因为她夸我」
 
 只输出 JSON，不要任何解释、不要 markdown 代码块，格式：
 {"intimacy":55,"joy":45,"sadness":8,"anger":0,"fear":3,"longing":68,"shame":0,"clingy":52,"calm":55,"jealousy":0,"mood":"normal","mood_reason":"因为夏夏来消息了"}
