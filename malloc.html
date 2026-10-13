@@ -1843,49 +1843,32 @@ function clearChat(){
   chatBody.innerHTML = '';
   lastMsgTime = 0;
 }
-/* ===== 键盘弹起时，输入框上移 ===== */
+/* ===== 键盘弹起：让输入框顶到键盘上面 ===== */
 (function setupKeyboardFix(){
   const screen = document.getElementById('chat-screen');
   if (!screen) return;
 
-  // 记录「键盘未弹起时」的窗口高度
-  let baseHeight = window.innerHeight;
-
-  function fixHeight() {
-    const currentH = window.innerHeight;
-    // 键盘弹起时，innerHeight 会变小
-    const h = currentH < baseHeight ? currentH : baseHeight;
-
-    // 用可视高度，替换 100dvh
-    screen.style.height = h + 'px';
-
-    // 键盘弹起时，滚动到底
-    scrollBottom();
+  function onFocus() {
+    // 输入框聚焦 → #chat-screen 变绝对定位，贴底
+    screen.style.position = 'absolute';
+    screen.style.top = '0';
+    screen.style.bottom = '0';
+    screen.style.height = 'auto';
+    setTimeout(scrollBottom, 100);
+    setTimeout(scrollBottom, 400);
   }
 
-  // 页面首次加载，记下基准高度
-  window.addEventListener('load', () => {
-    baseHeight = window.innerHeight;
-    fixHeight();
-  });
+  function onBlur() {
+    // 输入框失焦 → 恢复 fixed 100dvh
+    screen.style.position = '';
+    screen.style.top = '';
+    screen.style.bottom = '';
+    screen.style.height = '';
+    setTimeout(scrollBottom, 100);
+  }
 
-  // resize：键盘弹起 / 收起
-  window.addEventListener('resize', () => {
-    // 如果窗口高度恢复了，说明键盘收了，更新基准
-    if (window.innerHeight > baseHeight) {
-      baseHeight = window.innerHeight;
-    }
-    fixHeight();
-  });
-
-  // focus / blur：兜底
-  inputMobile.addEventListener('focus', () => setTimeout(fixHeight, 100));
-  inputMobile.addEventListener('focus', () => setTimeout(fixHeight, 400));
-  inputMobile.addEventListener('focus', () => setTimeout(fixHeight, 800));
-  inputMobile.addEventListener('blur', () => setTimeout(fixHeight, 100));
-  inputMobile.addEventListener('blur', () => setTimeout(fixHeight, 400));
-
-  fixHeight();
+  inputMobile.addEventListener('focus', onFocus);
+  inputMobile.addEventListener('blur', onBlur);
 })();
 // 初始化
 applyListAvatar();
