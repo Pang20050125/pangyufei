@@ -1778,7 +1778,7 @@ function coverClick(){
   const body = document.getElementById('chat-body');
   footer.classList.add('lifted');
   cover.classList.add('hide');
-  body.style.paddingBottom = '60';   /* ← 让消息往上走，数字比 38vh 大一点 */
+  body.style.paddingBottom = '60vh';   /* ← 让消息往上走，数字比 38vh 大一点 */
   setTimeout(scrollBottom, 100);
   setTimeout(scrollBottom, 300);
   // 抬上去后，把焦点给真输入框 → 键盘弹起
@@ -1795,7 +1795,7 @@ inputMobile.addEventListener('blur', () => {
     const body = document.getElementById('chat-body');
     footer.classList.remove('lifted');
     cover.classList.remove('hide');
-    body.style.paddingBottom = '60';
+    body.style.paddingBottom = '60vh';
     setTimeout(scrollBottom, 100);
   }, 200);
 });
