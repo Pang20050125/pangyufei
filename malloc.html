@@ -253,9 +253,18 @@ body{
   background:var(--c-footer-bg);
   border-top:0.5px solid var(--c-footer-line);
   display:flex;align-items:center;gap:var(--gap-footer);
-  position:sticky;
-  bottom:0;
+  position:relative;
   z-index:5;
+}
+#chat-footer.floating{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:999;
+}
+#chat-body.pushed{
+  padding-bottom:12vh;
 }
 #chat-footer .icon-btn{
   width:3.8vh;height:3.8vh;flex-shrink:0;
@@ -1845,32 +1854,27 @@ function clearChat(){
   chatBody.innerHTML = '';
   lastMsgTime = 0;
 }
-/* ===== 键盘弹起：让输入框顶到键盘上面 ===== */
+/* ===== 键盘弹起：底栏钉在屏幕底部 ===== */
 (function setupKeyboardFix(){
-  const screen = document.getElementById('chat-screen');
-  if (!screen) return;
+  const footer = document.getElementById('chat-footer');
+  const body = document.getElementById('chat-body');
+  if (!footer || !body) return;
 
-  function onFocus() {
-    // 输入框聚焦 → #chat-screen 变绝对定位，贴底
-    screen.style.position = 'absolute';
-    screen.style.top = '0';
-    screen.style.bottom = '0';
-    screen.style.height = 'auto';
+  function pinBottom() {
+    footer.classList.add('floating');
+    body.classList.add('pushed');
     setTimeout(scrollBottom, 100);
     setTimeout(scrollBottom, 400);
   }
 
-  function onBlur() {
-    // 输入框失焦 → 恢复 fixed 100dvh
-    screen.style.position = '';
-    screen.style.top = '';
-    screen.style.bottom = '';
-    screen.style.height = '';
+  function unpin() {
+    footer.classList.remove('floating');
+    body.classList.remove('pushed');
     setTimeout(scrollBottom, 100);
   }
 
-  inputMobile.addEventListener('focus', onFocus);
-  inputMobile.addEventListener('blur', onBlur);
+  inputMobile.addEventListener('focus', pinBottom);
+  inputMobile.addEventListener('blur', unpin);
 })();
 // 初始化
 applyListAvatar();
