@@ -17,7 +17,11 @@ export default async function handler(req, res) {
     const marker = `color:red|${lat},${lon}`;
     const url = `https://apis.map.qq.com/ws/staticmap/v2/?center=${center}&zoom=16&size=600*300&maptype=roadmap&markers=${encodeURIComponent(marker)}&key=${key}`;
 
-    const r = await fetch(url);
+    const r = await fetch(url, {
+      headers: {
+        'Referer': 'https://www.pangyufei.com/'
+      }
+    });
     if (!r.ok) {
       return res.status(500).json({ error: 'tencent map failed' });
     }
