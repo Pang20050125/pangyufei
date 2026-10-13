@@ -1890,7 +1890,6 @@ async function send(){
     headerName.textContent = '哒哒';
     headerName.style.fontSize = '';
     sending = false;
-    inputMobile.focus();
     lastMsgTime = Date.now();
     updateSendState();
     loadListTime();
@@ -1923,6 +1922,9 @@ function coverClick(){
 /* 输入框失焦 → 底栏落回来，透明盖恢复 */
 inputMobile.addEventListener('blur', () => {
   setTimeout(() => {
+    // 如果输入框又拿回焦点了，别落回
+    if (document.activeElement === inputMobile) return;
+
     const footer = document.getElementById('chat-footer');
     const cover = document.getElementById('input-cover');
     const body = document.getElementById('chat-body');
