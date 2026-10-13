@@ -1775,8 +1775,12 @@ document.getElementById('edit-input').addEventListener('input', function(){
 function coverClick(){
   const footer = document.getElementById('chat-footer');
   const cover = document.getElementById('input-cover');
+  const body = document.getElementById('chat-body');
   footer.classList.add('lifted');
   cover.classList.add('hide');
+  body.style.paddingBottom = '60';   /* ← 让消息往上走，数字比 38vh 大一点 */
+  setTimeout(scrollBottom, 100);
+  setTimeout(scrollBottom, 300);
   // 抬上去后，把焦点给真输入框 → 键盘弹起
   setTimeout(() => {
     inputMobile.focus();
@@ -1788,8 +1792,11 @@ inputMobile.addEventListener('blur', () => {
   setTimeout(() => {
     const footer = document.getElementById('chat-footer');
     const cover = document.getElementById('input-cover');
+    const body = document.getElementById('chat-body');
     footer.classList.remove('lifted');
     cover.classList.remove('hide');
+    body.style.paddingBottom = '';
+    setTimeout(scrollBottom, 100);
   }, 200);
 });
 inputMobile.addEventListener('input', updateSendState);
