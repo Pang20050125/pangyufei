@@ -1848,32 +1848,42 @@ function clearChat(){
   const screen = document.getElementById('chat-screen');
   if (!screen) return;
 
+  // 记录「键盘未弹起时」的窗口高度
+  let baseHeight = window.innerHeight;
+
   function fixHeight() {
-    // 取可视高度
-    let h = window.innerHeight;
-    if (window.visualViewport) h = window.visualViewport.height;
+    const currentH = window.innerHeight;
+    // 键盘弹起时，innerHeight 会变小
+    const h = currentH < baseHeight ? currentH : baseHeight;
+
+    // 用可视高度，替换 100dvh
     screen.style.height = h + 'px';
-    if (window.visualViewport) {
-      screen.style.top = window.visualViewport.offsetTop + 'px';
-    }
-    // 键盘弹起时，输入框贴底
+
+    // 键盘弹起时，滚动到底
     scrollBottom();
   }
 
-  // 键盘弹起/收起 → resize
-  window.addEventListener('resize', fixHeight);
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', fixHeight);
-    window.visualViewport.addEventListener('scroll', fixHeight);
-  }
+  // 页面首次加载，记下基准高度
+  window.addEventListener('load', () => {
+    baseHeight = window.innerHeight;
+    fixHeight();
+  });
 
-  // 输入框聚焦时，延迟调用（键盘弹起有动画）
-  inputMobile.addEventListener('focus', () => {
-    setTimeout(fixHeight, 300);
+  // resize：键盘弹起 / 收起
+  window.addEventListener('resize', () => {
+    // 如果窗口高度恢复了，说明键盘收了，更新基准
+    if (window.innerHeight > baseHeight) {
+      baseHeight = window.innerHeight;
+    }
+    fixHeight();
   });
-  inputMobile.addEventListener('blur', () => {
-    setTimeout(fixHeight, 300);
-  });
+
+  // focus / blur：兜底
+  inputMobile.addEventListener('focus', () => setTimeout(fixHeight, 100));
+  inputMobile.addEventListener('focus', () => setTimeout(fixHeight, 400));
+  inputMobile.addEventListener('focus', () => setTimeout(fixHeight, 800));
+  inputMobile.addEventListener('blur', () => setTimeout(fixHeight, 100));
+  inputMobile.addEventListener('blur', () => setTimeout(fixHeight, 400));
 
   fixHeight();
 })();
