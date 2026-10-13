@@ -866,6 +866,10 @@ body{
       <div class="plus-icon" id="plus-icon-takeout"></div>
       <div class="plus-label">外卖</div>
     </div>
+    <div class="plus-item" onclick="plusClick('屏幕')">
+      <div class="plus-icon" id="plus-icon-screen"></div>
+      <div class="plus-label">屏幕</div>
+    </div>
   </div>
 </div>
 
@@ -931,6 +935,15 @@ function plusClick(name){
     document.getElementById('camera-file').click();
     return;
   }
+  if (name === '屏幕') {
+    document.getElementById('plus-panel').classList.remove('show');
+    if (window.Android && window.Android.startScreenCapture) {
+      window.Android.startScreenCapture();
+    } else {
+      alert('屏幕共享只在 App 里能用');
+    }
+    return;
+  }
   if (name === '位置') { alert('位置 还没做'); return; }
   if (name === '音乐') { alert('音乐 还没做'); return; }
   if (name === '礼物') { alert('礼物 还没做'); return; }
@@ -952,7 +965,8 @@ function loadPlusIcons(){
     'plus-icon-location': '位置',
     'plus-icon-music':    '音乐',
     'plus-icon-gift':     '礼物',
-    'plus-icon-takeout':  '外卖'
+    'plus-icon-takeout':  '外卖',
+    'plus-icon-screen':   '屏幕'
   };
   for (const id in map) {
     const el = document.getElementById(id);
