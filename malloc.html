@@ -790,7 +790,7 @@ body{
     </div>
     <div class="icon-btn" title="表情包" onclick="toggleStickerPanel()" id="icon-emoji"></div>
     <button id="send-mobile">发送</button>
-    <div class="icon-btn" title="加号" id="icon-add"></div>
+    <div class="icon-btn" title="加号" id="icon-add" onclick="togglePlusPanel()"></div>
   </div>
 </div>
 
@@ -815,7 +815,33 @@ body{
     <button id="upload-save" onclick="saveSticker()" disabled>保存</button>
   </div>
 </div>
-
+<!-- 加号面板 -->
+<div id="plus-panel">
+  <div class="plus-item" onclick="plusClick('相册')">
+    <div class="plus-icon" id="plus-icon-album"></div>
+    <div class="plus-label">相册</div>
+  </div>
+  <div class="plus-item" onclick="plusClick('拍摄')">
+    <div class="plus-icon" id="plus-icon-camera"></div>
+    <div class="plus-label">拍摄</div>
+  </div>
+  <div class="plus-item" onclick="plusClick('位置')">
+    <div class="plus-icon" id="plus-icon-location"></div>
+    <div class="plus-label">位置</div>
+  </div>
+  <div class="plus-item" onclick="plusClick('音乐')">
+    <div class="plus-icon" id="plus-icon-music"></div>
+    <div class="plus-label">音乐</div>
+  </div>
+  <div class="plus-item" onclick="plusClick('礼物')">
+    <div class="plus-icon" id="plus-icon-gift"></div>
+    <div class="plus-label">礼物</div>
+  </div>
+  <div class="plus-item" onclick="plusClick('外卖')">
+    <div class="plus-icon" id="plus-icon-takeout"></div>
+    <div class="plus-label">外卖</div>
+  </div>
+</div>
 <input type="file" id="avatar-file" accept="image/*">
 <input type="file" id="sticker-file" accept="image/*">
 
@@ -840,6 +866,40 @@ let pendingStickerData = null;
 let pendingStickerTag = null;
 
 /* ===== 图标 ===== */
+/* ===== 加号面板 ===== */
+function plusClick(name){
+  if (name === '相册') { alert('相册 还没做'); return; }
+  if (name === '拍摄') { alert('拍摄 还没做'); return; }
+  if (name === '位置') { alert('位置 还没做'); return; }
+  if (name === '音乐') { alert('音乐 还没做'); return; }
+  if (name === '礼物') { alert('礼物 还没做'); return; }
+  if (name === '外卖') { alert('外卖 还没做'); return; }
+}
+
+function togglePlusPanel(){
+  const p = document.getElementById('plus-panel');
+  p.classList.toggle('show');
+  if (p.classList.contains('show')) loadPlusIcons();
+}
+
+function loadPlusIcons(){
+  const map = {
+    'plus-icon-album':    '相册',
+    'plus-icon-camera':   '拍摄',
+    'plus-icon-location': '位置',
+    'plus-icon-music':    '音乐',
+    'plus-icon-gift':     '礼物',
+    'plus-icon-takeout':  '外卖'
+  };
+  for (const id in map) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const url = iconMap[map[id]];
+    if (url) {
+      el.style.backgroundImage = 'url(' + url + ')';
+    }
+  }
+}
 const iconMap = {};
 const DEFAULT_SEARCH_SVG = '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>';
 const DEFAULT_PLUS_SVG   = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
@@ -1112,6 +1172,36 @@ async function saveSoulEdit(){
     closeSoulEdit();
   } catch(e){ alert('保存失败'); }
 }
+/* ===== 加号面板 ===== */
+#plus-panel{
+  position:fixed;
+  left:0;right:0;bottom:0;
+  background:#f7f7f7;
+  border-top:0.5px solid #dcdcdc;
+  padding:4vh var(--pad-x) calc(4vh + env(safe-area-inset-bottom));
+  display:none;
+  grid-template-columns:repeat(4,1fr);
+  gap:4vh 0;
+  z-index:10;
+}
+#plus-panel.show{display:grid}
+.plus-item{
+  display:flex;flex-direction:column;align-items:center;
+  cursor:pointer;
+}
+.plus-icon{
+  width:9vh;height:9vh;
+  background:#fff;
+  border-radius:2vh;
+  background-size:55%;
+  background-repeat:no-repeat;
+  background-position:center;
+  margin-bottom:1.2vh;
+}
+.plus-label{
+  font-size:1.6vh;
+  color:#666;
+}
 /* ===== 服务 ===== */
 function openService(){
   document.getElementById('pane-me').style.display = 'none';
@@ -1234,6 +1324,7 @@ function openChat(){
 function closeChat(){
   document.getElementById('chat-screen').classList.remove('active');
   document.getElementById('sticker-panel').classList.remove('show');
+  document.getElementById('plus-panel').classList.remove('show');
 }
 
 /* ===== 定位 ===== */
