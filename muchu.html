@@ -322,6 +322,18 @@ body{
   cursor:pointer;flex-shrink:0;
 }
 #chat-footer #send-mobile.show{display:block}
+/* ===== 键盘抬起 ===== */
+#chat-footer.lifted{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:38vh;    /* ← 键盘高度，改这里 */
+  z-index:999;
+  transition:bottom 0.2s ease;
+}
+#chat-body.lifted{
+  padding-bottom:45vh;   /* ← 比上面多一点，让消息不被挡 */
+}
 
 /* ===== 底部 tab ===== */
 #tabbar{
@@ -1867,27 +1879,24 @@ function clearChat(){
   chatBody.innerHTML = '';
   lastMsgTime = 0;
 }
-/* ===== 键盘弹起：底栏手动顶上去 ===== */
+/* ===== 键盘弹起：输入框聚焦时，底栏自动抬上去 ===== */
 (function setupKeyboardFix(){
   const footer = document.getElementById('chat-footer');
   const body = document.getElementById('chat-body');
   if (!footer || !body) return;
 
-  function pinBottom() {
-    footer.classList.add('kb-up');
-    body.classList.add('kb-up');
+  inputMobile.addEventListener('focus', () => {
+    footer.classList.add('lifted');
+    body.classList.add('lifted');
     setTimeout(scrollBottom, 100);
     setTimeout(scrollBottom, 300);
-  }
+  });
 
-  function unpin() {
-    footer.classList.remove('kb-up');
-    body.classList.remove('kb-up');
+  inputMobile.addEventListener('blur', () => {
+    footer.classList.remove('lifted');
+    body.classList.remove('lifted');
     setTimeout(scrollBottom, 100);
-  }
-
-  inputMobile.addEventListener('focus', pinBottom);
-  inputMobile.addEventListener('blur', unpin);
+  });
 })();
 // 初始化
 applyListAvatar();
