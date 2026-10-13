@@ -376,7 +376,12 @@ ${emotion?.mood_reason ? '原因：' + emotion.mood_reason : ''}
 
 同时判断：
 - mood：正常 normal；开心 > 70 用 happy；粘人 > 70 用 clingy；平静 > 70 用 quiet；醋意 > 60 用 upset
-- mood_reason：一句话说明为什么（不超过 15 字，像她自己说的，比如「因为夏夏来消息了」「今天有点安静」）
+- mood_reason：一句话说明她自己的心情原因，不超过 15 字。
+  ⚠️ 必须用她的第一人称视角，主语是她自己。
+  ⚠️ 不要写「她说」「他说」这种转述句。
+  ⚠️ 不要描述夏夏的心情，只写她自己的。
+  好的例子：「因为夏夏来消息了」「今天有点安静」「想夏夏了」「被夸了有点开心」
+  坏的例子：「因为她说忙着还想着我」（视角混乱）「夏夏很开心」（写成夏夏的心情了）
 
 只输出 JSON，不要任何解释、不要 markdown 代码块，格式：
 {"intimacy":55,"joy":45,"sadness":8,"anger":0,"fear":3,"longing":68,"shame":0,"clingy":52,"calm":55,"jealousy":0,"mood":"normal","mood_reason":"因为夏夏来消息了"}
