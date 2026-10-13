@@ -463,6 +463,42 @@ body{
   position:absolute;right:var(--pad-x);
   bottom:1vh;font-size:1.6vh;color:var(--c-gray);
 }
+#chatbg-preview-wrap{
+  position:relative;
+  margin:3vh var(--pad-x);
+  background:#fff;
+  border-radius:1.2vh;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:60vh;
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+}
+#chatbg-preview{
+  width:100%;
+  height:60vh;
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+}
+#chatbg-add{
+  position:absolute;
+  right:2vh;
+  bottom:2vh;
+  width:6vh;
+  height:6vh;
+  border-radius:50%;
+  background:#07C160;
+  color:#fff;
+  font-size:4vh;
+  line-height:6vh;
+  text-align:center;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,0.2);
+}
 /* ===== 加号面板 ===== */
 #plus-panel{
   flex-shrink:0;
@@ -710,6 +746,27 @@ body{
           <div class="me-item-arrow" id="st-arrow-3"></div>
         </div>
       </div>
+      <div class="me-group">
+        <div class="me-item" onclick="openChatBg()">
+          <div class="me-item-label">聊天背景</div>
+          <div class="me-item-value"></div>
+          <div class="me-item-arrow" id="st-arrow-4"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 聊天背景 -->
+    <div id="pane-chatbg" style="display:none;min-height:100%;background:#ededed">
+      <div class="sub-topbar">
+        <div class="sub-back" onclick="closeChatBg()">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <div class="sub-title">聊天背景</div>
+      </div>
+      <div id="chatbg-preview-wrap">
+        <div id="chatbg-preview"></div>
+        <div id="chatbg-add" onclick="pickChatBg()">+</div>
+      </div>
     </div>
 
     <!-- 钱包 -->
@@ -901,6 +958,7 @@ body{
 <!-- 拍摄：调摄像头 -->
 <input type="file" id="camera-file" accept="image/*" capture="environment">
 <input type="file" id="sticker-file" accept="image/*">
+<input type="file" id="chatbg-file" accept="image/*">
 
 <script>
 const SUPABASE_URL = 'https://mulbmncmfeadvrienvqb.supabase.co';
@@ -1218,6 +1276,58 @@ function openSettings(){
   document.getElementById('pane-settings').style.display = 'block';
   document.getElementById('tabbar').style.display = 'none';
   loadSoul();
+}
+
+/* ===== 聊天背景 ===== */
+let chatBgUrl = '';
+
+async function loadChatBg(){
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/config?id=eq.1&select=chat_bg_url&limit=1`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
+    );
+    const arr = await res.json();
+    if (Array.isArray(arr) && arr[0] && arr[0].chat_bg_url) {
+      chatBgUrl = arr[0].chat_bg_url;
+    } else {
+      chatBgUrl = '';
+    }
+    applyChatBg();
+  } catch(e){ console.error(e); }
+}
+
+function applyChatBg(){
+  const body = document.getElementById('chat-body');
+  if (!body) return;
+  if (chatBgUrl) {
+    body.style.backgroundImage = 'url(' + chatBgUrl + ')';
+    body.style.backgroundSize = 'cover';
+    body.style.backgroundPosition = 'center';
+    body.style.backgroundRepeat = 'no-repeat';
+  } else {
+    body.style.backgroundImage = '';
+  }
+}
+
+function openChatBg(){
+  document.getElementById('pane-settings').style.display = 'none';
+  document.getElementById('pane-chatbg').style.display = 'block';
+  const preview = document.getElementById('chatbg-preview');
+  if (chatBgUrl) {
+    preview.style.backgroundImage = 'url(' + chatBgUrl + ')';
+  } else {
+    preview.style.backgroundImage = '';
+  }
+}
+
+function closeChatBg(){
+  document.getElementById('pane-chatbg').style.display = 'none';
+  document.getElementById('pane-settings').style.display = 'block';
+}
+
+function pickChatBg(){
+  document.getElementById('chatbg-file').click();
 }
 function closeSettings(){
   document.getElementById('pane-settings').style.display = 'none';
@@ -2110,12 +2220,58 @@ function clearChat(){
   lastMsgTime = 0;
 }
 
+document.getElementById('chatbg-file').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const raw = await new Promise(r => {
+    const fr = new FileReader();
+    fr.onload = ev => r(ev.target.result);
+    fr.readAsDataURL(f);
+  });
+  const compressed = await compressImage(raw, 1600, 0.85);
+  let url = '';
+  try {
+    const fileName = 'chatbg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.jpg';
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base64: compressed, fileName })
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || '上传失败');
+    url = d.url;
+  } catch (err) {
+    alert('上传失败：' + err.message);
+    e.target.value = '';
+    return;
+  }
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/config?id=eq.1`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ chat_bg_url: url })
+    });
+    chatBgUrl = url;
+    applyChatBg();
+    document.getElementById('chatbg-preview').style.backgroundImage = 'url(' + url + ')';
+  } catch (err) {
+    alert('保存失败');
+  }
+  e.target.value = '';
+});
+
 // 初始化
 applyListAvatar();
 loadIcons();
 loadHistory();
 loadListTime();
 loadStatusBar();
+loadChatBg();
 updateSendState();
 </script>
 
