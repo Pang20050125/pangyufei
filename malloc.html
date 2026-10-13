@@ -203,7 +203,7 @@ body{
 .chat-item .time{font-size:var(--fs-time);color:var(--c-preview);flex-shrink:0;margin-left:2vw;align-self:flex-start;margin-top:1.2vh}
 
 /* ===== 聊天屏 ===== */
-#chat-body{flex:1;overflow-y:auto;padding:2vh var(--pad-x);background:var(--c-chat-bg);display:flex;flex-direction:column;align-items:stretch}
+#chat-body{flex:1;overflow-y:auto;padding:2vh var(--pad-x) 8vh;background:var(--c-chat-bg);display:flex;flex-direction:column;align-items:stretch}
 #chat-body::-webkit-scrollbar{display:none}
 
 .time-divider{display:flex;justify-content:center;margin:1.5vh 0}
@@ -253,7 +253,9 @@ body{
   background:var(--c-footer-bg);
   border-top:0.5px solid var(--c-footer-line);
   display:flex;align-items:center;gap:var(--gap-footer);
-  position:relative;z-index:5;
+  position:sticky;
+  bottom:0;
+  z-index:5;
 }
 #chat-footer .icon-btn{
   width:3.8vh;height:3.8vh;flex-shrink:0;
