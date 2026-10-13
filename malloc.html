@@ -134,7 +134,7 @@ body{
   z-index:1;
 }
 #list-screen{transform:translateX(0)}
-#chat-screen{transform:translateX(100%);z-index:2}
+#chat-screen{transform:translateX(100%);z-index:2;transition:transform 0.25s ease,height 0.15s ease}
 #chat-screen.active{transform:translateX(0)}
 
 /* ===== 顶栏 ===== */
@@ -450,7 +450,8 @@ body{
 /* ===== 加号面板 ===== */
 #plus-panel{
   position:fixed;
-  left:0;right:0;bottom:0;
+  left:0;right:0;
+  bottom:calc(5vh + 0.8vh + env(safe-area-inset-bottom));
   background:#f7f7f7;
   border-top:0.5px solid #dcdcdc;
   padding:4vh var(--pad-x) calc(4vh + env(safe-area-inset-bottom));
@@ -908,8 +909,16 @@ function plusClick(name){
 
 function togglePlusPanel(){
   const p = document.getElementById('plus-panel');
-  p.classList.toggle('show');
-  if (p.classList.contains('show')) loadPlusIcons();
+  const body = document.getElementById('chat-body');
+  const show = !p.classList.contains('show');
+  p.classList.toggle('show', show);
+  if (show) {
+    loadPlusIcons();
+    body.style.paddingBottom = '30vh';
+  } else {
+    body.style.paddingBottom = '';
+  }
+  scrollBottom();
 }
 
 function loadPlusIcons(){
@@ -1409,6 +1418,8 @@ function toggleStickerPanel(){
   const p = document.getElementById('sticker-panel');
   const show = !p.classList.contains('show');
   p.classList.toggle('show');
+  document.getElementById('plus-panel').classList.remove('show');
+  document.getElementById('chat-body').style.paddingBottom = '';
   if (show) loadStickers().then(renderStickerPanel);
 }
 
@@ -1851,7 +1862,20 @@ function clearChat(){
   chatBody.innerHTML = '';
   lastMsgTime = 0;
 }
-
+/* ===== 键盘弹起时，输入框上移 ===== */
+function handleViewportResize() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const screen = document.getElementById('chat-screen');
+  if (!screen) return;
+  // 用 visualViewport 的高度，替换 100dvh
+  screen.style.height = vv.height + 'px';
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', handleViewportResize);
+  window.visualViewport.addEventListener('scroll', handleViewportResize);
+  handleViewportResize();
+}
 // 初始化
 applyListAvatar();
 loadIcons();
