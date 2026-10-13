@@ -232,6 +232,9 @@ body{
 
 .bubble{
   max-width:70%;padding:1.2vh 2.8vw;border-radius:var(--radius-bubble);
+  border:none;
+  outline:none;
+  box-shadow:none;
   font-size:var(--fs-bubble);line-height:1.5;word-break:break-word;white-space:pre-wrap;
   position:relative;
   animation:fadeIn 0.2s ease;
@@ -243,8 +246,7 @@ body{
 .bubble.sticker::before{display:none !important}
 .msg-row.her .bubble{background:var(--c-bubble-her);color:var(--c-bubble-text)}
 .msg-row.you .bubble{background:var(--c-bubble-you);color:var(--c-bubble-text)}
-.msg-row.her .bubble::before{content:'';position:absolute;left:-5px;top:1.5vh;width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-right:5px solid var(--c-bubble-her)}
-.msg-row.you .bubble::before{content:'';position:absolute;right:-5px;top:1.5vh;width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:5px solid var(--c-bubble-you)}
+
 
 /* ===== 聊天屏底部 ===== */
 #chat-footer{
