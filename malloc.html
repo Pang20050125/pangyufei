@@ -449,16 +449,13 @@ body{
 }
 /* ===== 加号面板 ===== */
 #plus-panel{
-  position:fixed;
-  left:0;right:0;
-  bottom:calc(5vh + 0.8vh + env(safe-area-inset-bottom));
+  flex-shrink:0;
   background:#f7f7f7;
   border-top:0.5px solid #dcdcdc;
   padding:4vh var(--pad-x) calc(4vh + env(safe-area-inset-bottom));
   display:none;
   grid-template-columns:repeat(4,1fr);
   gap:4vh 0;
-  z-index:10;
 }
 #plus-panel.show{display:grid}
 .plus-item{
@@ -823,6 +820,34 @@ body{
     <button id="send-mobile">发送</button>
     <div class="icon-btn" title="加号" id="icon-add" onclick="togglePlusPanel()"></div>
   </div>
+
+  <!-- 加号面板（在 chat-footer 下面，flex 布局里） -->
+  <div id="plus-panel">
+    <div class="plus-item" onclick="plusClick('相册')">
+      <div class="plus-icon" id="plus-icon-album"></div>
+      <div class="plus-label">相册</div>
+    </div>
+    <div class="plus-item" onclick="plusClick('拍摄')">
+      <div class="plus-icon" id="plus-icon-camera"></div>
+      <div class="plus-label">拍摄</div>
+    </div>
+    <div class="plus-item" onclick="plusClick('位置')">
+      <div class="plus-icon" id="plus-icon-location"></div>
+      <div class="plus-label">位置</div>
+    </div>
+    <div class="plus-item" onclick="plusClick('音乐')">
+      <div class="plus-icon" id="plus-icon-music"></div>
+      <div class="plus-label">音乐</div>
+    </div>
+    <div class="plus-item" onclick="plusClick('礼物')">
+      <div class="plus-icon" id="plus-icon-gift"></div>
+      <div class="plus-label">礼物</div>
+    </div>
+    <div class="plus-item" onclick="plusClick('外卖')">
+      <div class="plus-icon" id="plus-icon-takeout"></div>
+      <div class="plus-label">外卖</div>
+    </div>
+  </div>
 </div>
 
 <!-- 表情面板 -->
@@ -846,33 +871,7 @@ body{
     <button id="upload-save" onclick="saveSticker()" disabled>保存</button>
   </div>
 </div>
-<!-- 加号面板 -->
-<div id="plus-panel">
-  <div class="plus-item" onclick="plusClick('相册')">
-    <div class="plus-icon" id="plus-icon-album"></div>
-    <div class="plus-label">相册</div>
-  </div>
-  <div class="plus-item" onclick="plusClick('拍摄')">
-    <div class="plus-icon" id="plus-icon-camera"></div>
-    <div class="plus-label">拍摄</div>
-  </div>
-  <div class="plus-item" onclick="plusClick('位置')">
-    <div class="plus-icon" id="plus-icon-location"></div>
-    <div class="plus-label">位置</div>
-  </div>
-  <div class="plus-item" onclick="plusClick('音乐')">
-    <div class="plus-icon" id="plus-icon-music"></div>
-    <div class="plus-label">音乐</div>
-  </div>
-  <div class="plus-item" onclick="plusClick('礼物')">
-    <div class="plus-icon" id="plus-icon-gift"></div>
-    <div class="plus-label">礼物</div>
-  </div>
-  <div class="plus-item" onclick="plusClick('外卖')">
-    <div class="plus-icon" id="plus-icon-takeout"></div>
-    <div class="plus-label">外卖</div>
-  </div>
-</div>
+
 <input type="file" id="avatar-file" accept="image/*">
 <input type="file" id="sticker-file" accept="image/*">
 
@@ -909,15 +908,9 @@ function plusClick(name){
 
 function togglePlusPanel(){
   const p = document.getElementById('plus-panel');
-  const body = document.getElementById('chat-body');
   const show = !p.classList.contains('show');
   p.classList.toggle('show', show);
-  if (show) {
-    loadPlusIcons();
-    body.style.paddingBottom = '30vh';
-  } else {
-    body.style.paddingBottom = '';
-  }
+  if (show) loadPlusIcons();
   scrollBottom();
 }
 
