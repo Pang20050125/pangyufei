@@ -69,6 +69,30 @@ export default async function handler(req, res) {
       }
     } catch(e) {}
 
+    // ===== 自动更新「今天在做」=====
+    try {
+      const needUpdate = !emotion?.last_event_date || emotion.last_event_date !== todaySlot;
+      if (needUpdate) {
+        const actRes2 = await safeFetch(
+          `${SUPABASE_URL}/rest/v1/daily_activities?day_type=eq.${encodeURIComponent(dayType)}&weather=eq.${encodeURIComponent('晴')}&time_slot=eq.${encodeURIComponent(timeSlot)}&select=content`,
+          { headers: sbHeaders }
+        );
+        if (actRes2 && actRes2.ok) {
+          const acts = await actRes2.json();
+          if (Array.isArray(acts) && acts.length > 0) {
+            const picked = acts[Math.floor(Math.random() * acts.length)].content;
+            await safeFetch(`${SUPABASE_URL}/rest/v1/emotions?owner=eq.${OWNER}`, {
+              method: 'PATCH',
+              headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+              body: JSON.stringify({ last_event: picked, last_event_date: todaySlot })
+            });
+          }
+        }
+      }
+    } catch(e) {
+      console.error('[heartbeat activity update fail]', e.message);
+    }
+
     if (todayCount >= 8) {
       return res.status(200).json({ ok: true, skipped: '今天已发够 8 条' });
     }
