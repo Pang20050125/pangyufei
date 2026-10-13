@@ -1751,6 +1751,10 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#header-menu') && !e.target.closest('.icon')) {
     document.getElementById('header-menu').classList.remove('show');
   }
+  // 点聊天区域（不是 + 面板、不是 + 号、不是表情包面板）→ 收起 + 面板
+  if (!e.target.closest('#plus-panel') && !e.target.closest('#icon-add') && !e.target.closest('#sticker-panel')) {
+    document.getElementById('plus-panel').classList.remove('show');
+  }
 });
 
 let avatarTarget = null;
@@ -1845,8 +1849,11 @@ function handleViewportResize() {
   if (!vv) return;
   const screen = document.getElementById('chat-screen');
   if (!screen) return;
-  // 用 visualViewport 的高度，替换 100dvh
+  // 可视高度（减掉键盘）
   screen.style.height = vv.height + 'px';
+  // 处理键盘弹起时页面被顶起（iOS）
+  screen.style.top = vv.offsetTop + 'px';
+  scrollBottom();
 }
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', handleViewportResize);
