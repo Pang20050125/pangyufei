@@ -138,6 +138,37 @@ export default async function handler(req, res) {
     if (!soul) return res.status(500).json({ error: 'soul not found' });
     const historyAsc = history.reverse();
 
+    // ===== 图片理解 =====
+    let imageDescription = '';
+    const imgMatch = content.match(/\[图片\](\S+)/);
+    if (imgMatch) {
+      const imageUrl = imgMatch[1];
+      const visionRes = await safeFetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'deepseek-flash',
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: '用一句话描述这张图片的内容，像朋友转述那样，不要加任何解释。' },
+              { type: 'image_url', image_url: { url: imageUrl } }
+            ]
+          }],
+          max_tokens: 120
+        })
+      });
+      if (visionRes && visionRes.ok) {
+        try {
+          const vData = await visionRes.json();
+          imageDescription = vData?.choices?.[0]?.message?.content || '';
+        } catch(e) {}
+      }
+    }
+
     // ===== 4. 拼 prompt =====
     const memoryText = memories.length > 0
       ? memories.map(m => '- ' + (m.content || '')).join('\n')
@@ -219,6 +250,7 @@ ${Object.entries(dislikes).map(([cat, items]) => {
 今天是：${dayType}
 ${cityStr ? '她在：' + cityStr : ''}
 ${weatherStr ? '天气：' + weatherStr : ''}
+${imageDescription ? '【夏夏刚发了一张图】\n图片内容：' + imageDescription + '\n你要自然地回应这张图。' : ''}
 
 【你今天在做的事】
 ${todayActivity}
