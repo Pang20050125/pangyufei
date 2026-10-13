@@ -249,23 +249,15 @@ body{
 /* ===== 聊天屏底部 ===== */
 #chat-footer{
   flex-shrink:0;
-  padding:1.0vh 2vw calc(1.0vh + env(safe-area-inset-bottom));
+  padding:10vh 2vw calc(10vh + env(safe-area-inset-bottom));
   background:var(--c-footer-bg);
   border-top:0.5px solid var(--c-footer-line);
   display:flex;align-items:center;gap:var(--gap-footer);
   position:relative;
   z-index:5;
+  transition:bottom 0.2s ease;
 }
-#chat-footer.floating{
-  position:fixed;
-  left:0;
-  right:0;
-  bottom:0;
-  z-index:999;
-}
-#chat-body.pushed{
-  padding-bottom:12vh;
-}
+
 #chat-footer .icon-btn{
   width:3.8vh;height:3.8vh;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
@@ -309,6 +301,7 @@ body{
   cursor:pointer;flex-shrink:0;
 }
 #chat-footer #send-mobile.show{display:block}
+
 
 /* ===== 底部 tab ===== */
 #tabbar{
@@ -1854,28 +1847,7 @@ function clearChat(){
   chatBody.innerHTML = '';
   lastMsgTime = 0;
 }
-/* ===== 键盘弹起：底栏钉在屏幕底部 ===== */
-(function setupKeyboardFix(){
-  const footer = document.getElementById('chat-footer');
-  const body = document.getElementById('chat-body');
-  if (!footer || !body) return;
 
-  function pinBottom() {
-    footer.classList.add('floating');
-    body.classList.add('pushed');
-    setTimeout(scrollBottom, 100);
-    setTimeout(scrollBottom, 400);
-  }
-
-  function unpin() {
-    footer.classList.remove('floating');
-    body.classList.remove('pushed');
-    setTimeout(scrollBottom, 100);
-  }
-
-  inputMobile.addEventListener('focus', pinBottom);
-  inputMobile.addEventListener('blur', unpin);
-})();
 // 初始化
 applyListAvatar();
 loadIcons();
