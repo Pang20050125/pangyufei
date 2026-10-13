@@ -1,54 +1,176 @@
-// ===== 轮询：她主动发的消息 =====
-let lastSeenMessageId = 0;
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-async function pollProactive() {
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const SUPABASE_URL = 'https://mulbmncmfeadvrienvqb.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_lTxspnB5QDQqpFza_kZmXA_5EspN3y8';
+  const OWNER = 'xia';
+
+  const sbHeaders = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json',
+  };
+
+  async function safeFetch(url, options) {
+    try { return await fetch(url, options); }
+    catch (e) { console.error('[safeFetch]', url, e.message); return null; }
+  }
+
   try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&proactive=eq.true&order=created_at.desc&limit=1`,
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
-    );
-    if (!res.ok) return;
-    const list = await res.json();
-    if (!Array.isArray(list) || list.length === 0) return;
-    const m = list[0];
-    if (m.id === lastSeenMessageId) return;
-    if (lastSeenMessageId === 0) { lastSeenMessageId = m.id; return; }
-    lastSeenMessageId = m.id;
+    // ===== 时间 =====
+    const now = new Date();
+    const bj = new Date(now.getTime() + 8 * 3600 * 1000);
+    const hour = bj.getUTCHours();
+    const dayOfWeek = bj.getUTCDay();
 
-    // 显示在聊天里
-    const now = Date.now();
-    if (now - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(now);
-    lastMsgTime = now;
-    appendMsg('her', m.content);
-    scrollBottom();
+    let timeOfDay = '深夜';
+    let timeSlot = '深';
+    if (hour >= 5 && hour < 11) { timeOfDay = '早上'; timeSlot = '早'; }
+    else if (hour >= 11 && hour < 13) { timeOfDay = '中午'; timeSlot = '中'; }
+    else if (hour >= 13 && hour < 18) { timeOfDay = '下午'; timeSlot = '下'; }
+    else if (hour >= 18 && hour < 23) { timeOfDay = '晚上'; timeSlot = '晚'; }
 
-    // 浏览器通知（如果页面在前台，可以补一层）
+    const isRestDay = (dayOfWeek === 0 || dayOfWeek === 6);
+    const dayType = isRestDay ? '休息日' : '工作日';
+    const todayDate = bj.toISOString().slice(0, 10);
+    const todaySlot = todayDate + '-' + timeSlot;
+
+    // ===== 读 soul / emotions =====
+    const [soulRes, emoRes, cfgRes, logRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/soul?owner=eq.${OWNER}&limit=1`, { headers: sbHeaders }),
+      fetch(`${SUPABASE_URL}/rest/v1/emotions?owner=eq.${OWNER}&limit=1`, { headers: sbHeaders }),
+      fetch(`${SUPABASE_URL}/rest/v1/config?id=eq.1&select=about_me&limit=1`, { headers: sbHeaders }),
+      fetch(`${SUPABASE_URL}/rest/v1/proactive_log?owner=eq.${OWNER}&order=sent_at.desc&limit=20`, { headers: sbHeaders }),
+    ]);
+
+    const soul = (await soulRes.json())[0];
+    const emotion = (await emoRes.json())[0];
+    if (!soul) return res.status(500).json({ error: 'soul not found' });
+
+    let me = {};
     try {
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        new Notification('Malloc', { body: m.content });
+      const cfgArr = await cfgRes.json();
+      me = (cfgArr[0] && cfgArr[0].about_me) || {};
+    } catch(e) {}
+
+    // ===== 今天已主动发几条 =====
+    let todayCount = 0;
+    try {
+      const logs = await logRes.json();
+      if (Array.isArray(logs)) {
+        const todayStart = new Date(todayDate + 'T00:00:00+08:00').getTime();
+        logs.forEach(l => {
+          if (new Date(l.sent_at).getTime() >= todayStart) todayCount++;
+        });
       }
     } catch(e) {}
-  } catch(e) { /* silent */ }
-}
 
-// 初始化：拉一次最新，记下 id
-(async () => {
-  try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&proactive=eq.true&order=created_at.desc&limit=1`,
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
-    );
-    const list = await res.json();
-    if (Array.isArray(list) && list.length > 0) lastSeenMessageId = list[0].id;
-  } catch(e) {}
-})();
+    if (todayCount >= 8) {
+      return res.status(200).json({ ok: true, skipped: '今天已发够 8 条' });
+    }
 
-// 每 30 秒轮询一次
-setInterval(pollProactive, 30000);
+    // ===== 多久没互动 =====
+    const lastInteraction = emotion?.last_interaction ? new Date(emotion.last_interaction) : null;
+    const minutesSince = lastInteraction ? (now - lastInteraction) / 60000 : 9999;
 
-// 申请通知权限
-try {
-  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-    Notification.requestPermission();
+    // ===== 判断概率 =====
+    let prob = 0;
+    if (minutesSince > 360 && hour >= 9 && hour < 22) prob = 0.5;
+    else if (minutesSince > 240) prob = 0.3;
+    else if (hour >= 7 && hour < 9 && minutesSince > 60) prob = 0.6;
+    else if ((hour >= 22 || hour < 1) && minutesSince > 90) prob = 0.4;
+
+    // 情绪加成
+    if (emotion?.longing > 75) prob += 0.2;
+    if (emotion?.clingy > 70) prob += 0.15;
+    if (emotion?.joy > 75) prob += 0.1;
+
+    if (Math.random() > prob) {
+      return res.status(200).json({ ok: true, skipped: '这次不主动' });
+    }
+
+    // ===== 决定：是拍一拍，还是发消息 =====
+    const isPat = Math.random() < 0.2;  // 20% 概率是拍一拍
+
+    let reply = '';
+
+    if (isPat) {
+      // 拍一拍
+      const herPat = soul.pat || '拍了拍';
+      const yourName = me.nickname || me.name || '夏夏';
+      reply = soul.nickname + ' ' + herPat + ' ' + yourName;
+    } else {
+      // 正常主动消息：调 DeepSeek
+      const systemPrompt = `
+你叫 ${soul.name}，小名 ${soul.nickname}。
+你是夏夏的女朋友。现在是你主动找她说话。
+说话要短，像微信，1 条，最多 15 个字。
+不要问"在吗"，不要客服腔。
+可以撒娇、可以分享你在做什么、可以说想她。
+`.trim();
+
+      const aiRes = await safeFetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `现在时间：${timeOfDay}。你主动跟她说一句。` }
+          ],
+          temperature: 0.95,
+          max_tokens: 100
+        })
+      });
+
+      if (aiRes && aiRes.ok) {
+        const aiData = await aiRes.json();
+        reply = aiData?.choices?.[0]?.message?.content || '';
+      }
+      reply = reply.trim() || '在干嘛呀';
+    }
+
+    // ===== 存进 messages =====
+    await safeFetch(`${SUPABASE_URL}/rest/v1/messages`, {
+      method: 'POST',
+      headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+      body: JSON.stringify([{
+        owner: OWNER,
+        role: 'assistant',
+        content: reply,
+        proactive: true
+      }])
+    });
+
+    // ===== 写进 proactive_log =====
+    await safeFetch(`${SUPABASE_URL}/rest/v1/proactive_log`, {
+      method: 'POST',
+      headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+      body: JSON.stringify([{
+        owner: OWNER,
+        sent_at: new Date().toISOString(),
+        content: reply
+      }])
+    });
+
+    // ===== 推 ntfy =====
+    await safeFetch('https://ntfy.sh/pangyufei-xia', {
+      method: 'POST',
+      headers: { 'Title': 'Malloc', 'Tags': 'heart' },
+      body: reply
+    });
+
+    return res.status(200).json({ ok: true, reply, isPat });
+
+  } catch (e) {
+    console.error('[heartbeat fatal]', e);
+    return res.status(500).json({ error: e.message });
   }
-} catch(e) {}
+}
