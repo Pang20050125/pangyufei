@@ -1844,22 +1844,39 @@ function clearChat(){
   lastMsgTime = 0;
 }
 /* ===== 键盘弹起时，输入框上移 ===== */
-function handleViewportResize() {
-  const vv = window.visualViewport;
-  if (!vv) return;
+(function setupKeyboardFix(){
   const screen = document.getElementById('chat-screen');
   if (!screen) return;
-  // 可视高度（减掉键盘）
-  screen.style.height = vv.height + 'px';
-  // 处理键盘弹起时页面被顶起（iOS）
-  screen.style.top = vv.offsetTop + 'px';
-  scrollBottom();
-}
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', handleViewportResize);
-  window.visualViewport.addEventListener('scroll', handleViewportResize);
-  handleViewportResize();
-}
+
+  function fixHeight() {
+    // 取可视高度
+    let h = window.innerHeight;
+    if (window.visualViewport) h = window.visualViewport.height;
+    screen.style.height = h + 'px';
+    if (window.visualViewport) {
+      screen.style.top = window.visualViewport.offsetTop + 'px';
+    }
+    // 键盘弹起时，输入框贴底
+    scrollBottom();
+  }
+
+  // 键盘弹起/收起 → resize
+  window.addEventListener('resize', fixHeight);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', fixHeight);
+    window.visualViewport.addEventListener('scroll', fixHeight);
+  }
+
+  // 输入框聚焦时，延迟调用（键盘弹起有动画）
+  inputMobile.addEventListener('focus', () => {
+    setTimeout(fixHeight, 300);
+  });
+  inputMobile.addEventListener('blur', () => {
+    setTimeout(fixHeight, 300);
+  });
+
+  fixHeight();
+})();
 // 初始化
 applyListAvatar();
 loadIcons();
