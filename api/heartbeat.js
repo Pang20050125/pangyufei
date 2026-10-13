@@ -104,13 +104,47 @@ export default async function handler(req, res) {
       const yourName = me.nickname || me.name || '夏夏';
       reply = soul.nickname + ' ' + herPat + ' ' + yourName;
     } else {
+      // 读 daily_activities（按 dayType + 时段）
+      let activities = [];
+      const actRes = await safeFetch(
+        `${SUPABASE_URL}/rest/v1/daily_activities?day_type=eq.${encodeURIComponent(dayType)}&weather=eq.${encodeURIComponent('晴')}&time_slot=eq.${encodeURIComponent(timeSlot)}&select=content`,
+        { headers: sbHeaders }
+      );
+      if (actRes && actRes.ok) {
+        try { activities = await actRes.json(); } catch(e) {}
+      }
+
+      let todayActivity = '';
+      if (Array.isArray(activities) && activities.length > 0) {
+        todayActivity = activities[Math.floor(Math.random() * activities.length)].content;
+      }
+
       // 正常主动消息：调 DeepSeek
       const systemPrompt = `
-你叫 ${soul.name}，小名 ${soul.nickname}。
+你叫 ${soul.name}，小名 ${soul.nickname}，25 岁。
 你是夏夏的女朋友。现在是你主动找她说话。
-说话要短，像微信，1 条，最多 15 个字。
+
+【你怎么说话】
+像真人发微信。1 条，最多 15 个字。
 不要问"在吗"，不要客服腔。
-可以撒娇、可以分享你在做什么、可以说想她。
+可以撒娇、可以说想她、可以自然提一句你正在做的事。
+
+【当下】
+当前时间：${timeOfDay}（${timeSlot}）
+今天是：${dayType}
+你正在做的事：${todayActivity || '（没记）'}
+偶尔可以自然带一句你正在做的事，不要每次都提。
+
+【你的情绪】
+想你 ${emotion?.longing ?? 50}
+粘人 ${emotion?.clingy ?? 40}
+开心 ${emotion?.joy ?? 50}
+心情：${emotion?.mood ?? 'normal'}
+
+【绝对禁止】
+1. 不许提代码、编程、AI。
+2. 不许一条超过 15 个字。
+3. 不许说教，不许像客服。
 `.trim();
 
       const aiRes = await safeFetch('https://api.deepseek.com/chat/completions', {
@@ -123,7 +157,7 @@ export default async function handler(req, res) {
           model: 'deepseek-chat',
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: `现在时间：${timeOfDay}。你主动跟她说一句。` }
+            { role: 'user', content: `现在是${timeOfDay}。你在${todayActivity || '忙自己的事'}。你主动跟她说一句。` }
           ],
           temperature: 0.95,
           max_tokens: 100
