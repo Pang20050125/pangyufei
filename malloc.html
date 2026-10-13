@@ -447,6 +447,36 @@ body{
   position:absolute;right:var(--pad-x);
   bottom:1vh;font-size:1.6vh;color:var(--c-gray);
 }
+/* ===== 加号面板 ===== */
+#plus-panel{
+  position:fixed;
+  left:0;right:0;bottom:0;
+  background:#f7f7f7;
+  border-top:0.5px solid #dcdcdc;
+  padding:4vh var(--pad-x) calc(4vh + env(safe-area-inset-bottom));
+  display:none;
+  grid-template-columns:repeat(4,1fr);
+  gap:4vh 0;
+  z-index:10;
+}
+#plus-panel.show{display:grid}
+.plus-item{
+  display:flex;flex-direction:column;align-items:center;
+  cursor:pointer;
+}
+.plus-icon{
+  width:9vh;height:9vh;
+  background:#fff;
+  border-radius:2vh;
+  background-size:55%;
+  background-repeat:no-repeat;
+  background-position:center;
+  margin-bottom:1.2vh;
+}
+.plus-label{
+  font-size:1.6vh;
+  color:#666;
+}
 /* ===== 服务 ===== */
 .service-card{
   margin:16px var(--pad-x);
@@ -1171,36 +1201,6 @@ async function saveSoulEdit(){
     renderSoul();
     closeSoulEdit();
   } catch(e){ alert('保存失败'); }
-}
-/* ===== 加号面板 ===== */
-#plus-panel{
-  position:fixed;
-  left:0;right:0;bottom:0;
-  background:#f7f7f7;
-  border-top:0.5px solid #dcdcdc;
-  padding:4vh var(--pad-x) calc(4vh + env(safe-area-inset-bottom));
-  display:none;
-  grid-template-columns:repeat(4,1fr);
-  gap:4vh 0;
-  z-index:10;
-}
-#plus-panel.show{display:grid}
-.plus-item{
-  display:flex;flex-direction:column;align-items:center;
-  cursor:pointer;
-}
-.plus-icon{
-  width:9vh;height:9vh;
-  background:#fff;
-  border-radius:2vh;
-  background-size:55%;
-  background-repeat:no-repeat;
-  background-position:center;
-  margin-bottom:1.2vh;
-}
-.plus-label{
-  font-size:1.6vh;
-  color:#666;
 }
 /* ===== 服务 ===== */
 function openService(){
