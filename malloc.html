@@ -1761,8 +1761,8 @@ async function loadHistory(){
       lastMsgTime = t;
       const c = m.content || '';
       const who = m.role === 'user' ? 'you' : 'her';
-      if (c.startsWith('[表情]')) appendSticker(who, c.slice(3));
-      else if (c.startsWith('[图片]')) appendImage(who, c.slice(3));
+      if (c.startsWith('[表情]')) appendSticker(who, c.slice(4));
+      else if (c.startsWith('[图片]')) appendImage(who, c.slice(4));
       else appendMsg(who, c);
     });
     scrollBottom();
