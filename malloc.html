@@ -2155,8 +2155,12 @@ function renderMusicList(){
 }
 
 function openMusic(){
+  document.getElementById('chat-screen').classList.remove('active');
+  document.getElementById('pane-wechat').style.display = 'none';
   document.getElementById('pane-me').style.display = 'none';
   document.getElementById('pane-settings').style.display = 'none';
+  document.getElementById('pane-profile').style.display = 'none';
+  document.getElementById('pane-chatbg').style.display = 'none';
   document.getElementById('pane-music').style.display = 'block';
   document.getElementById('tabbar').style.display = 'none';
   document.getElementById('music-search-input').value = '';
@@ -2164,7 +2168,8 @@ function openMusic(){
 }
 function closeMusic(){
   document.getElementById('pane-music').style.display = 'none';
-  document.getElementById('pane-settings').style.display = 'block';
+  document.getElementById('pane-wechat').style.display = 'block';
+  document.getElementById('tabbar').style.display = 'flex';
 }
 function openMusicAdd(){
   document.getElementById('music-add-title').value = '';
