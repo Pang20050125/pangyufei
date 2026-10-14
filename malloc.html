@@ -1274,7 +1274,7 @@ let pendingStickerTag = null;
 let lastPolledId = 0;
 let pollingTimer = null;
 let renderedIds = new Set();
-let localSentContents = new Set();
+let localSentContents = new Map();
 
 /* ===== 图标 ===== */
 /* ===== 加号面板 ===== */
@@ -1819,6 +1819,7 @@ async function handlePickImage(file) {
 
   // 3. 聊天里显示图片气泡
   appendImage('you', url);
+  localSentContents.set('[图片]' + url, (localSentContents.get('[图片]' + url) || 0) + 1);
 
   // 4. 触发送消息流程（让她回）
   // 简单做法：把图片当一条消息，调用 chat
@@ -2068,7 +2069,12 @@ async function pollNewMessages(){
     list.forEach(m => {
       if (renderedIds.has(m.id)) return;
       if (m.role === 'user' && localSentContents.has(m.content || '')) {
-        localSentContents.delete(m.content || '');
+        const cnt = localSentContents.get(m.content || '');
+        if (cnt <= 1) {
+          localSentContents.delete(m.content || '');
+        } else {
+          localSentContents.set(m.content || '', cnt - 1);
+        }
         renderedIds.add(m.id);
         return;
       }
@@ -2292,6 +2298,7 @@ async function confirmMusicSend(){
   document.getElementById('pane-music').style.display = 'none';
   document.getElementById('chat-screen').classList.add('active');
   appendMusic('you', song);
+  localSentContents.set('[音乐]' + JSON.stringify({ title: song.title, artist: song.artist }), (localSentContents.get('[音乐]' + JSON.stringify({ title: song.title, artist: song.artist })) || 0) + 1);
   headerName.textContent = '对方正在输入';
   headerName.style.fontSize = '1.8vh';
   try {
@@ -2557,6 +2564,7 @@ async function saveSticker(){
 function sendSticker(url){
   toggleStickerPanel();
   appendSticker('you', url);
+  localSentContents.set('[表情]' + url, (localSentContents.get('[表情]' + url) || 0) + 1);
   fetch(`${SUPABASE_URL}/rest/v1/messages`, {
     method: 'POST',
     headers: {
@@ -2721,7 +2729,7 @@ async function send(){
   lastMsgTime = now;
 
   appendMsg('you', content);
-  localSentContents.add(content);
+  localSentContents.set(content, (localSentContents.get(content) || 0) + 1);
 
   headerName.textContent = '对方正在输入';
   headerName.style.fontSize = '1.8vh';
