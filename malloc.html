@@ -1021,6 +1021,8 @@ let lastMsgTime = 0;
 let stickersCache = [];
 let pendingStickerData = null;
 let pendingStickerTag = null;
+let lastPolledAt = new Date().toISOString();
+let pollingTimer = null;
 
 /* ===== 图标 ===== */
 /* ===== 加号面板 ===== */
@@ -1774,11 +1776,58 @@ function switchTab(name){
 /* ===== 屏切换 ===== */
 function openChat(){
   document.getElementById('chat-screen').classList.add('active');
+  lastPolledAt = new Date().toISOString();
+  startPolling();
 }
 function closeChat(){
   document.getElementById('chat-screen').classList.remove('active');
   document.getElementById('sticker-panel').classList.remove('show');
   document.getElementById('plus-panel').classList.remove('show');
+  stopPolling();
+}
+
+/* ===== 轮询新消息 ===== */
+function startPolling(){
+  if (pollingTimer) return;
+  pollingTimer = setInterval(pollNewMessages, 8000);
+}
+function stopPolling(){
+  if (pollingTimer) {
+    clearInterval(pollingTimer);
+    pollingTimer = null;
+  }
+}
+async function pollNewMessages(){
+  if (sending) return;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&created_at=gt.${encodeURIComponent(lastPolledAt)}&order=created_at.asc&limit=20`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
+    );
+    const list = await res.json();
+    if (!Array.isArray(list) || list.length === 0) return;
+    list.forEach(m => {
+      if (m.role === 'user') return;
+      const t = new Date(m.created_at).getTime();
+      if (t - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(t);
+      lastMsgTime = t;
+      const c = m.content || '';
+      if (c.startsWith('[表情]')) appendSticker('her', c.slice(4));
+      else if (c.startsWith('[图片]')) appendImage('her', c.slice(4));
+      else if (c.startsWith('[位置]')) {
+        try {
+          const card = JSON.parse(c.slice(4));
+          appendLocation('her', card);
+        } catch (e) {
+          appendMsg('her', c);
+        }
+      }
+      else appendMsg('her', c);
+    });
+    lastPolledAt = list[list.length - 1].created_at;
+    scrollBottom();
+    loadListTime();
+  } catch(e){}
 }
 
 /* ===== 定位 ===== */
@@ -1848,6 +1897,8 @@ async function loadStatusBar(){
     }
   } catch(e){}
 }
+
+
 
 /* ===== 表情包 ===== */
 async function loadStickers(){
@@ -2201,6 +2252,7 @@ async function send(){
     headerName.style.fontSize = '';
     sending = false;
     lastMsgTime = Date.now();
+    lastPolledAt = new Date().toISOString();
     updateSendState();
     loadListTime();
   }
@@ -2435,6 +2487,9 @@ loadListTime();
 loadStatusBar();
 loadChatBg();
 updateSendState();
+
+setInterval(loadListTime, 60000);
+setInterval(loadStatusBar, 60000);
 </script>
 
 </body>
