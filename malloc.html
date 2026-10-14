@@ -1746,7 +1746,10 @@ function appendLocation(who, card){
   map.className = 'loc-map';
   const mapImg = document.createElement('img');
   mapImg.src = `/api/staticmap?lat=${card.lat}&lon=${card.lon}`;
-  mapImg.alt = '地图';
+  mapImg.alt = '';
+  mapImg.onerror = () => {
+    map.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.4vh;color:#999;">地图加载失败</div>';
+  };
   map.appendChild(mapImg);
 
   box.appendChild(n);
@@ -2101,11 +2104,12 @@ function appendSticker(who, url){
 async function loadHistory(){
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=created_at.asc&limit=200`,
+      `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=created_at.desc&limit=500`,
       { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
     );
-    const list = await res.json();
-    if (!Array.isArray(list)) return;
+    const listRaw = await res.json();
+    if (!Array.isArray(listRaw)) return;
+    const list = listRaw.reverse();
     chatBody.innerHTML = '';
     lastMsgTime = 0;
     list.forEach(m => {
