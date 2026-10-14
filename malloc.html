@@ -2054,6 +2054,12 @@ function closeChat(){
   document.getElementById('chat-screen').classList.remove('active');
   document.getElementById('sticker-panel').classList.remove('show');
   document.getElementById('plus-panel').classList.remove('show');
+  document.getElementById('pane-music').style.display = 'none';
+  document.getElementById('music-add-popup').classList.remove('show');
+  document.getElementById('pane-wechat').style.display = 'block';
+  document.getElementById('tabbar').style.display = 'flex';
+  document.getElementById('list-screen').querySelector('.topbar').style.display = 'flex';
+  document.getElementById('list-screen').querySelector('.status-bar').style.display = 'flex';
   stopPolling();
 }
 
@@ -2300,7 +2306,8 @@ async function confirmMusicSend(){
   musicSending = true;
   const song = currentMusic;
   closeMusicSend();
-  closeMusic();
+  document.getElementById('pane-music').style.display = 'none';
+  document.getElementById('chat-screen').classList.add('active');
   appendMusic('you', song);
   headerName.textContent = '对方正在输入';
   headerName.style.fontSize = '1.8vh';
