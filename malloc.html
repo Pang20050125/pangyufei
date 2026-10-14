@@ -2302,16 +2302,6 @@ async function confirmMusicSend(){
   closeMusicSend();
   closeMusic();
   appendMusic('you', song);
-  fetch(`${SUPABASE_URL}/rest/v1/messages`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal'
-    },
-    body: JSON.stringify([{ owner: OWNER, role: 'user', content: '[音乐]' + JSON.stringify({ title: song.title, artist: song.artist }) }])
-  }).catch(e => console.error(e));
   headerName.textContent = '对方正在输入';
   headerName.style.fontSize = '1.8vh';
   try {
