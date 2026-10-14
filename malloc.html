@@ -262,7 +262,7 @@ body{
   font-weight:500;
 }
 .location-card .loc-sub{
-  font-size:1.4vh;
+  font-size:1.2vh;
   color:#999999;
   padding:0 2vw 1vh;
 }
@@ -1740,16 +1740,13 @@ function appendLocation(who, card){
 
   const sub = document.createElement('div');
   sub.className = 'loc-sub';
-  sub.textContent = card.lat + ', ' + card.lon;
+  sub.textContent = '小庞の位置';
 
   const map = document.createElement('div');
   map.className = 'loc-map';
   const mapImg = document.createElement('img');
-  mapImg.src = `/api/staticmap?lat=${card.lat}&lon=${card.lon}`;
+  mapImg.src = '把这里换成你那张图的URL';
   mapImg.alt = '';
-  mapImg.onerror = () => {
-    map.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.4vh;color:#999;">地图加载失败</div>';
-  };
   map.appendChild(mapImg);
 
   box.appendChild(n);
@@ -1811,6 +1808,8 @@ async function pollNewMessages(){
     if (!Array.isArray(list) || list.length === 0) return;
     list.forEach(m => {
       if (m.role === 'user') return;
+      const lastBubble = chatBody.querySelector('.msg-row:last-child .bubble');
+      if (lastBubble && lastBubble.textContent === (m.content || '')) return;
       const t = new Date(m.created_at).getTime();
       if (t - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(t);
       lastMsgTime = t;
