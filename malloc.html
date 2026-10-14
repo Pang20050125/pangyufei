@@ -578,24 +578,49 @@ body{
   text-align:center;color:#999999;
   font-size:1.6vh;padding:6vh 0;
 }
-.music-add-btns{
-  display:flex;gap:3vw;
-  padding:3vh var(--pad-x);
-  background:#ededed;
+#music-add-popup{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.4);
+  display:none;
+  align-items:center;justify-content:center;
+  z-index:1000;
 }
-.music-btn-cancel,.music-btn-ok{
+#music-add-popup.show{display:flex}
+.music-add-card{
+  width:76vw;max-width:420px;
+  background:#ffffff;
+  border-radius:1.5vh;
+  padding:2.5vh 4vw 0;
+  box-shadow:0 4px 30px rgba(0,0,0,0.15);
+}
+.music-add-card .ma-title{
+  font-size:2vh;color:#111111;
+  text-align:left;font-weight:500;
+  margin-bottom:2vh;
+}
+.music-add-card .ma-input{
+  width:100%;
+  border:none;outline:none;
+  font-size:2vh;font-family:inherit;
+  color:#111111;
+  border-bottom:1px solid #07C160;
+  padding:1.2vh 0;
+  margin-bottom:2.5vh;
+}
+.music-add-card .ma-btns{
+  display:flex;
+  margin:0 -4vw;
+  border-top:0.5px solid #eeeeee;
+}
+.music-add-card .ma-btn{
   flex:1;
-  border:none;border-radius:1vh;
-  font-size:1.9vh;font-family:inherit;
-  padding:1.6vh 0;
+  border:none;background:transparent;
+  font-size:2vh;font-family:inherit;
+  padding:2vh 0;
   cursor:pointer;
 }
-.music-btn-cancel{
-  background:#e5e5e5;color:#111111;
-}
-.music-btn-ok{
-  background:#07C160;color:#ffffff;
-}
+.music-add-card .ma-btn.cancel{color:#111111}
+.music-add-card .ma-btn.ok{color:#07C160;font-weight:500}
 /* 音乐弹窗（发送确认） */
 #music-send-popup{
   position:fixed;inset:0;
@@ -990,21 +1015,16 @@ body{
       <div id="music-list"></div>
     </div>
 
-    <!-- 新增歌曲 -->
-    <div id="pane-music-add" style="display:none;min-height:100%;background:#ededed">
-      <div class="sub-topbar">
-        <div class="sub-back" onclick="closeMusicAdd()">
-          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    <!-- 新增歌曲（弹窗） -->
+    <div id="music-add-popup">
+      <div class="music-add-card">
+        <div class="ma-title">添加歌曲</div>
+        <input type="text" id="music-add-title" class="ma-input" placeholder="歌名">
+        <input type="text" id="music-add-artist" class="ma-input" placeholder="歌手">
+        <div class="ma-btns">
+          <button class="ma-btn cancel" onclick="closeMusicAdd()">取消</button>
+          <button class="ma-btn ok" onclick="saveMusicAdd()">添加</button>
         </div>
-        <div class="sub-title">添加歌曲</div>
-      </div>
-      <div class="edit-body">
-        <input type="text" id="music-add-title" class="edit-input" placeholder="歌名">
-        <input type="text" id="music-add-artist" class="edit-input" placeholder="歌手" style="margin-top:3vh">
-      </div>
-      <div class="music-add-btns">
-        <button class="music-btn-cancel" onclick="closeMusicAdd()">取消</button>
-        <button class="music-btn-ok" onclick="saveMusicAdd()">添加</button>
       </div>
     </div>
 
@@ -2188,6 +2208,7 @@ function openMusic(){
 }
 function closeMusic(){
   document.getElementById('pane-music').style.display = 'none';
+  document.getElementById('music-add-popup').classList.remove('show');
   document.getElementById('pane-wechat').style.display = 'block';
   document.getElementById('tabbar').style.display = 'flex';
   document.getElementById('list-screen').querySelector('.topbar').style.display = 'flex';
@@ -2196,12 +2217,10 @@ function closeMusic(){
 function openMusicAdd(){
   document.getElementById('music-add-title').value = '';
   document.getElementById('music-add-artist').value = '';
-  document.getElementById('pane-music').style.display = 'none';
-  document.getElementById('pane-music-add').style.display = 'block';
+  document.getElementById('music-add-popup').classList.add('show');
 }
 function closeMusicAdd(){
-  document.getElementById('pane-music-add').style.display = 'none';
-  document.getElementById('pane-music').style.display = 'block';
+  document.getElementById('music-add-popup').classList.remove('show');
 }
 async function saveMusicAdd(){
   const title = document.getElementById('music-add-title').value.trim();
