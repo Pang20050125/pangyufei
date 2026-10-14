@@ -2278,10 +2278,14 @@ function closeMusicSend(){
   currentMusic = null;
 }
 let musicSending = false;
+let lastMusicSentAt = 0;
 async function confirmMusicSend(){
   if (!currentMusic) return;
   if (musicSending) return;
+  const nowTs = Date.now();
+  if (nowTs - lastMusicSentAt < 3000) return;
   musicSending = true;
+  lastMusicSentAt = nowTs;
   const song = currentMusic;
   closeMusicSend();
   closeMusic();
@@ -2595,12 +2599,30 @@ async function loadHistory(){
     list.forEach(m => {
       renderedIds.add(m.id);
     });
+    const recentUserMusicTitles = new Set();
+    document.querySelectorAll('.bubble-music').forEach(el => {
+      const t = el.querySelector('.mc-title');
+      if (t) recentUserMusicTitles.add(t.textContent);
+    });
     list.forEach(m => {
       const t = new Date(m.created_at).getTime();
       if (t - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(t);
       lastMsgTime = t;
       const c = m.content || '';
       const who = m.role === 'user' ? 'you' : 'her';
+      if (c.startsWith('[音乐]')) {
+        try {
+          const card = JSON.parse(c.slice(4));
+          if (who === 'you' && recentUserMusicTitles.has(card.title)) {
+            recentUserMusicTitles.delete(card.title);
+            return;
+          }
+          appendMusic(who, card);
+        } catch (e) {
+          appendMsg(who, c);
+        }
+        return;
+      }
       if (c.startsWith('[表情]')) appendSticker(who, c.slice(4));
       else if (c.startsWith('[图片]')) appendImage(who, c.slice(4));
       else if (c.startsWith('[位置]')) {
