@@ -647,6 +647,20 @@ body{
 }
 .music-send-card .ms-btn.cancel{color:#111111}
 .music-send-card .ms-btn.ok{color:#07C160;font-weight:500}
+/* 音乐顶栏的加号 */
+.sub-more{
+  margin-left:auto;
+  width:3vh;height:3vh;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transform:translateY(2.5vh);
+}
+.sub-more svg{
+  width:2.8vh;height:2.8vh;
+  stroke:#111;fill:none;
+  stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;
+}
 /* 音乐气泡 */
 .bubble.bubble-music{
   background:#ffffff !important;
@@ -963,9 +977,7 @@ body{
           <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
         </div>
         <div class="sub-title">音乐</div>
-        <div class="sub-more" id="music-add-btn" onclick="openMusicAdd()">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        </div>
+        <div class="sub-more" id="music-add-btn" onclick="openMusicAdd()"></div>
       </div>
       <div class="music-search-wrap">
         <input type="text" id="music-search-input" class="music-search-input" placeholder="搜索歌名或歌手">
@@ -1350,6 +1362,7 @@ function applyIcons(){
   setTopIcon('icon-emoji', '表情包', '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="0.9" fill="#333" stroke="none"/><circle cx="15" cy="10" r="0.9" fill="#333" stroke="none"/><path d="M8.5 14 Q12 16.5 15.5 14"/></svg>');
   setTopIcon('icon-add',   '加号',   '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>');
   setTopIcon('icon-mic',   '麦克风', '<svg viewBox="0 0 24 24"><rect x="9.5" y="3" width="5" height="11" rx="2.5"/><path d="M5.5 11.5 Q5.5 17 12 17 Q18.5 17 18.5 11.5"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8.5" y1="21" x2="15.5" y2="21"/></svg>');
+  setTopIcon('music-add-btn', '加号', '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>');
 
   document.querySelectorAll('.tab-item .tab-icon').forEach(img => {
     const isActive = img.closest('.tab-item').classList.contains('active');
@@ -2163,6 +2176,8 @@ function openMusic(){
   document.getElementById('pane-chatbg').style.display = 'none';
   document.getElementById('pane-music').style.display = 'block';
   document.getElementById('tabbar').style.display = 'none';
+  document.getElementById('list-screen').querySelector('.topbar').style.display = 'none';
+  document.getElementById('list-screen').querySelector('.status-bar').style.display = 'none';
   document.getElementById('music-search-input').value = '';
   loadMusic();
 }
@@ -2170,6 +2185,8 @@ function closeMusic(){
   document.getElementById('pane-music').style.display = 'none';
   document.getElementById('pane-wechat').style.display = 'block';
   document.getElementById('tabbar').style.display = 'flex';
+  document.getElementById('list-screen').querySelector('.topbar').style.display = 'flex';
+  document.getElementById('list-screen').querySelector('.status-bar').style.display = 'flex';
 }
 function openMusicAdd(){
   document.getElementById('music-add-title').value = '';
