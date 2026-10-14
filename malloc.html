@@ -1247,7 +1247,7 @@ body{
     <div class="ms-cover" id="ms-cover"></div>
     <div class="ms-btns">
       <button class="ms-btn cancel" onclick="closeMusicSend()">取消</button>
-      <button class="ms-btn ok" onclick="confirmMusicSend()">发送</button>
+      <button class="ms-btn ok" id="music-send-ok-btn">发送</button>
     </div>
   </div>
 </div>
@@ -2294,14 +2294,10 @@ function closeMusicSend(){
   currentMusic = null;
 }
 let musicSending = false;
-let lastMusicSentAt = 0;
 async function confirmMusicSend(){
   if (!currentMusic) return;
   if (musicSending) return;
-  const nowTs = Date.now();
-  if (nowTs - lastMusicSentAt < 3000) return;
   musicSending = true;
-  lastMusicSentAt = nowTs;
   const song = currentMusic;
   closeMusicSend();
   closeMusic();
@@ -2350,7 +2346,6 @@ async function confirmMusicSend(){
     headerName.textContent = '哒哒';
     headerName.style.fontSize = '';
     loadListTime();
-    musicSending = false;
     try {
       const r = await fetch(
         `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=5`,
@@ -2359,6 +2354,7 @@ async function confirmMusicSend(){
       const arr = await r.json();
       if (Array.isArray(arr)) arr.forEach(m => renderedIds.add(m.id));
     } catch(e){}
+    musicSending = false;
   }
 }
 
@@ -2634,19 +2630,6 @@ async function loadHistory(){
       lastMsgTime = t;
       const c = m.content || '';
       const who = m.role === 'user' ? 'you' : 'her';
-      if (c.startsWith('[音乐]')) {
-        try {
-          const card = JSON.parse(c.slice(4));
-          if (who === 'you' && recentUserMusicTitles.has(card.title)) {
-            recentUserMusicTitles.delete(card.title);
-            return;
-          }
-          appendMusic(who, card);
-        } catch (e) {
-          appendMsg(who, c);
-        }
-        return;
-      }
       if (c.startsWith('[表情]')) appendSticker(who, c.slice(4));
       else if (c.startsWith('[图片]')) appendImage(who, c.slice(4));
       else if (c.startsWith('[位置]')) {
@@ -3036,7 +3019,7 @@ updateSendState();
 setInterval(loadListTime, 60000);
 setInterval(loadStatusBar, 60000);
 
-document.getElementById('music-search-input').addEventListener('input', renderMusicList);
+document.getElementById('music-send-ok-btn').addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); if (this.disabled) return; this.disabled = true; this.style.opacity = '0.5'; confirmMusicSend().finally(() => { this.disabled = false; this.style.opacity = ''; }); });
 </script>
 
 </body>
