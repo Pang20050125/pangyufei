@@ -1,0 +1,12 @@
+name: Malloc Heartbeat
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call heartbeat
+        run: |
+          curl -s https://www.pangyufei.com/api/heartbeat
