@@ -2256,7 +2256,7 @@ async function send(){
     headerName.style.fontSize = '';
     sending = false;
     lastMsgTime = Date.now();
-    lastPolledAt = new Date().toISOString();
+    lastPolledAt = new Date(Date.now() + 5000).toISOString();
     updateSendState();
     loadListTime();
   }
