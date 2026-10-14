@@ -1274,6 +1274,7 @@ let pendingStickerTag = null;
 let lastPolledId = 0;
 let pollingTimer = null;
 let renderedIds = new Set();
+let localSentContents = new Set();
 
 /* ===== 图标 ===== */
 /* ===== 加号面板 ===== */
@@ -2066,6 +2067,11 @@ async function pollNewMessages(){
     const list = listRaw.reverse();
     list.forEach(m => {
       if (renderedIds.has(m.id)) return;
+      if (m.role === 'user' && localSentContents.has(m.content || '')) {
+        localSentContents.delete(m.content || '');
+        renderedIds.add(m.id);
+        return;
+      }
       renderedIds.add(m.id);
       const who = m.role === 'user' ? 'you' : 'her';
       const t = new Date(m.created_at).getTime();
@@ -2715,6 +2721,7 @@ async function send(){
   lastMsgTime = now;
 
   appendMsg('you', content);
+  localSentContents.add(content);
 
   headerName.textContent = '对方正在输入';
   headerName.style.fontSize = '1.8vh';
