@@ -1819,19 +1819,7 @@ async function handlePickImage(file) {
   // 3. 聊天里显示图片气泡
   appendImage('you', url);
 
-  // 4. 存进 messages
-  fetch(`${SUPABASE_URL}/rest/v1/messages`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal'
-    },
-    body: JSON.stringify([{ owner: OWNER, role: 'user', content: '[图片]' + url }])
-  }).catch(e => console.error(e));
-
-  // 5. 触发送消息流程（让她回）
+  // 4. 触发送消息流程（让她回）
   // 简单做法：把图片当一条消息，调用 chat
   try {
     headerName.textContent = '对方正在输入';
@@ -1938,17 +1926,6 @@ async function sendLocation(){
   };
 
   appendLocation('you', card);
-
-  fetch(`${SUPABASE_URL}/rest/v1/messages`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal'
-    },
-    body: JSON.stringify([{ owner: OWNER, role: 'user', content: '[位置]' + JSON.stringify(card) }])
-  }).catch(e => console.error(e));
 
   headerName.textContent = '对方正在输入';
   headerName.style.fontSize = '1.8vh';
@@ -2066,7 +2043,7 @@ function closeChat(){
 /* ===== 轮询新消息 ===== */
 function startPolling(){
   if (pollingTimer) return;
-  pollingTimer = setInterval(pollNewMessages, 10000);
+  pollingTimer = setInterval(pollNewMessages, 5000);
 }
 function stopPolling(){
   if (pollingTimer) {
@@ -2088,32 +2065,32 @@ async function pollNewMessages(){
     if (!Array.isArray(listRaw) || listRaw.length === 0) return;
     const list = listRaw.reverse();
     list.forEach(m => {
-      if (m.role === 'user') return;
       if (renderedIds.has(m.id)) return;
       renderedIds.add(m.id);
+      const who = m.role === 'user' ? 'you' : 'her';
       const t = new Date(m.created_at).getTime();
       if (t - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(t);
       lastMsgTime = t;
       const c = m.content || '';
-      if (c.startsWith('[表情]')) appendSticker('her', c.slice(4));
-      else if (c.startsWith('[图片]')) appendImage('her', c.slice(4));
+      if (c.startsWith('[表情]')) appendSticker(who, c.slice(4));
+      else if (c.startsWith('[图片]')) appendImage(who, c.slice(4));
       else if (c.startsWith('[位置]')) {
         try {
           const card = JSON.parse(c.slice(4));
-          appendLocation('her', card);
+          appendLocation(who, card);
         } catch (e) {
-          appendMsg('her', c);
+          appendMsg(who, c);
         }
       }
       else if (c.startsWith('[音乐]')) {
         try {
           const card = JSON.parse(c.slice(4));
-          appendMusic('her', card);
+          appendMusic(who, card);
         } catch (e) {
-          appendMsg('her', c);
+          appendMsg(who, c);
         }
       }
-      else appendMsg('her', c);
+      else appendMsg(who, c);
     });
     scrollBottom();
     loadListTime();
@@ -2583,7 +2560,16 @@ function sendSticker(url){
       'Prefer': 'return=minimal'
     },
     body: JSON.stringify([{ owner: OWNER, role: 'user', content: '[表情]' + url }])
-  }).catch(e => console.error(e));
+  })
+  .then(() => fetch(
+    `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=5`,
+    { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
+  ))
+  .then(r => r.json())
+  .then(arr => {
+    if (Array.isArray(arr)) arr.forEach(m => renderedIds.add(m.id));
+  })
+  .catch(e => console.error(e));
 }
 
 function appendSticker(who, url){
@@ -2615,11 +2601,6 @@ async function loadHistory(){
     renderedIds.clear();
     list.forEach(m => {
       renderedIds.add(m.id);
-    });
-    const recentUserMusicTitles = new Set();
-    document.querySelectorAll('.bubble-music').forEach(el => {
-      const t = el.querySelector('.mc-title');
-      if (t) recentUserMusicTitles.add(t.textContent);
     });
     list.forEach(m => {
       const t = new Date(m.created_at).getTime();
