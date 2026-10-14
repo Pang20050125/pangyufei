@@ -181,6 +181,19 @@ export default async function handler(req, res) {
       }
     }
 
+    // ===== 音乐理解 =====
+    let musicText = '';
+    if (content.startsWith('[音乐]')) {
+      try {
+        const card = JSON.parse(content.slice(4));
+        const title = card.title || '';
+        const artist = card.artist || '';
+        musicText = title + (artist ? ' - ' + artist : '');
+      } catch(e) {
+        musicText = '';
+      }
+    }
+
     // ===== 4. 拼 prompt =====
     const memoryText = memories.length > 0
       ? memories.map(m => '- ' + (m.content || '')).join('\n')
@@ -264,6 +277,7 @@ ${cityStr ? '她在：' + cityStr : ''}
 ${weatherStr ? '天气：' + weatherStr : ''}
 ${imageDescription ? '【夏夏刚发了一张图】\n图片内容：' + imageDescription + '\n你要自然地回应这张图。' : ''}
 ${locationText ? '【夏夏刚发了一个位置】\n位置：' + locationText + '\n你要自然地回应，比如问她在哪、说要去找她、关心她在做什么。' : ''}
+${musicText ? '【夏夏刚分享了一首歌】\n歌曲：' + musicText + '\n你要自然地回应，比如你也喜欢这首歌、问问她为什么听这首、说听着想她了。短，别超过 15 字一条。' : ''}
 
 【你今天在做的事】
 ${todayActivity}
