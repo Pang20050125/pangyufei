@@ -370,7 +370,12 @@ async function refresh() {
           role.textContent = (m.role === 'user' ? '夏夏' : '哒哒') + ' · ' + fmtTime(m.created_at);
           const content = document.createElement('div');
           content.className = 'content';
-          content.textContent = (m.content || '').substring(0, 100);
+          let raw = m.content || '';
+          if (raw.startsWith('[位置]')) raw = '[位置]';
+          else if (raw.startsWith('[图片]')) raw = '[图片]';
+          else if (raw.startsWith('[表情]')) raw = '[表情]';
+          else if (raw.startsWith('[视频]')) raw = '[视频]';
+          content.textContent = raw.substring(0, 100);
           item.appendChild(role);
           item.appendChild(content);
           box.appendChild(item);
