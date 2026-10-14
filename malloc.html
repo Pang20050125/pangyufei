@@ -1788,7 +1788,7 @@ function closeChat(){
 /* ===== 轮询新消息 ===== */
 function startPolling(){
   if (pollingTimer) return;
-  pollingTimer = setInterval(pollNewMessages, 8000);
+  pollingTimer = setInterval(pollNewMessages, 10000);
 }
 function stopPolling(){
   if (pollingTimer) {
@@ -1807,8 +1807,6 @@ async function pollNewMessages(){
     if (!Array.isArray(list) || list.length === 0) return;
     list.forEach(m => {
       if (m.role === 'user') return;
-      const lastBubble = chatBody.querySelector('.msg-row:last-child .bubble');
-      if (lastBubble && lastBubble.textContent === (m.content || '')) return;
       const t = new Date(m.created_at).getTime();
       if (t - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(t);
       lastMsgTime = t;
@@ -2257,6 +2255,14 @@ async function send(){
     lastMsgTime = Date.now();
     updateSendState();
     loadListTime();
+    try {
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=1`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
+      );
+      const arr = await r.json();
+      if (Array.isArray(arr) && arr[0]) lastPolledId = arr[0].id;
+    } catch(e){}
   }
 }
 document.getElementById('soul-edit-input').addEventListener('input', function(){
