@@ -545,6 +545,147 @@ body{
   cursor:pointer;
   box-shadow:0 2px 8px rgba(0,0,0,0.2);
 }
+/* ===== 音乐 ===== */
+.music-search-wrap{
+  padding:2vh var(--pad-x);
+  background:#ededed;
+}
+.music-search-input{
+  width:100%;
+  background:#ffffff;
+  border:none;outline:none;
+  border-radius:0.6vh;
+  padding:1.2vh 4vw;
+  font-size:1.8vh;font-family:inherit;
+  color:#111111;
+}
+.music-row{
+  display:flex;flex-direction:column;
+  padding:1.6vh var(--pad-x);
+  background:#ffffff;
+  border-bottom:0.5px solid var(--c-list-line);
+  cursor:pointer;
+}
+.music-row:active{background:var(--c-list-active)}
+.music-row .music-row-title{
+  font-size:1.9vh;color:#111111;
+  margin-bottom:0.4vh;
+}
+.music-row .music-row-artist{
+  font-size:1.5vh;color:#999999;
+}
+.music-empty{
+  text-align:center;color:#999999;
+  font-size:1.6vh;padding:6vh 0;
+}
+.music-add-btns{
+  display:flex;gap:3vw;
+  padding:3vh var(--pad-x);
+  background:#ededed;
+}
+.music-btn-cancel,.music-btn-ok{
+  flex:1;
+  border:none;border-radius:1vh;
+  font-size:1.9vh;font-family:inherit;
+  padding:1.6vh 0;
+  cursor:pointer;
+}
+.music-btn-cancel{
+  background:#e5e5e5;color:#111111;
+}
+.music-btn-ok{
+  background:#07C160;color:#ffffff;
+}
+/* 音乐弹窗（发送确认） */
+#music-send-popup{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.4);
+  display:none;
+  align-items:center;justify-content:center;
+  z-index:1000;
+}
+#music-send-popup.show{display:flex}
+.music-send-card{
+  width:76vw;max-width:420px;
+  background:#ffffff;
+  border-radius:1.5vh;
+  padding:2.5vh 4vw 0;
+  box-shadow:0 4px 30px rgba(0,0,0,0.15);
+}
+.music-send-card .ms-title{
+  font-size:2vh;color:#111111;
+  text-align:left;font-weight:500;
+  margin-bottom:0.6vh;
+}
+.music-send-card .ms-artist{
+  font-size:1.5vh;color:#999999;
+  text-align:left;
+  margin-bottom:2vh;
+}
+.music-send-card .ms-cover{
+  width:100%;height:22vh;
+  background:#f3f3f3;
+  border-radius:0.8vh;
+  margin-bottom:2.5vh;
+  overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.music-send-card .ms-cover img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.music-send-card .ms-btns{
+  display:flex;
+  margin:0 -4vw;
+  border-top:0.5px solid #eeeeee;
+}
+.music-send-card .ms-btn{
+  flex:1;
+  border:none;background:transparent;
+  font-size:2vh;font-family:inherit;
+  padding:2vh 0;
+  cursor:pointer;
+}
+.music-send-card .ms-btn.cancel{color:#111111}
+.music-send-card .ms-btn.ok{color:#07C160;font-weight:500}
+/* 音乐气泡 */
+.bubble.bubble-music{
+  background:#ffffff !important;
+  padding:0 !important;
+  max-width:70%;
+}
+.bubble.bubble-music::before{display:none !important}
+.music-card{
+  width:60vw;
+  max-width:60vw;
+  background:#ffffff;
+  border-radius:0.8vh;
+  overflow:hidden;
+  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+}
+.music-card .mc-title{
+  font-size:1.8vh;color:#111111;
+  padding:1.2vh 3vw 0.4vh;
+  font-weight:500;
+}
+.music-card .mc-artist{
+  font-size:1.3vh;color:#999999;
+  padding:0 3vw 1vh;
+}
+.music-card .mc-cover{
+  width:100%;
+  aspect-ratio:1/1;
+  background:#f3f3f3;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.music-card .mc-cover img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.music-card .mc-source{
+  font-size:1.3vh;color:#999999;
+  padding:1vh 3vw;
+  border-top:0.5px solid #f0f0f0;
+}
 /* ===== 加号面板 ===== */
 #plus-panel{
   flex-shrink:0;
@@ -815,6 +956,41 @@ body{
       </div>
     </div>
 
+    <!-- 音乐列表 -->
+    <div id="pane-music" style="display:none;min-height:100%;background:#ededed">
+      <div class="sub-topbar">
+        <div class="sub-back" onclick="closeMusic()">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <div class="sub-title">音乐</div>
+        <div class="sub-more" id="music-add-btn" onclick="openMusicAdd()">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </div>
+      </div>
+      <div class="music-search-wrap">
+        <input type="text" id="music-search-input" class="music-search-input" placeholder="搜索歌名或歌手">
+      </div>
+      <div id="music-list"></div>
+    </div>
+
+    <!-- 新增歌曲 -->
+    <div id="pane-music-add" style="display:none;min-height:100%;background:#ededed">
+      <div class="sub-topbar">
+        <div class="sub-back" onclick="closeMusicAdd()">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <div class="sub-title">添加歌曲</div>
+      </div>
+      <div class="edit-body">
+        <input type="text" id="music-add-title" class="edit-input" placeholder="歌名">
+        <input type="text" id="music-add-artist" class="edit-input" placeholder="歌手" style="margin-top:3vh">
+      </div>
+      <div class="music-add-btns">
+        <button class="music-btn-cancel" onclick="closeMusicAdd()">取消</button>
+        <button class="music-btn-ok" onclick="saveMusicAdd()">添加</button>
+      </div>
+    </div>
+
     <!-- 钱包 -->
     <div id="pane-wallet" style="display:none;min-height:100%;background:#ededed">
       <div class="sub-topbar">
@@ -1006,6 +1182,19 @@ body{
 <input type="file" id="sticker-file" accept="image/*">
 <input type="file" id="chatbg-file" accept="image/*">
 
+<!-- 音乐发送确认弹窗 -->
+<div id="music-send-popup">
+  <div class="music-send-card">
+    <div class="ms-title" id="ms-title">—</div>
+    <div class="ms-artist" id="ms-artist">—</div>
+    <div class="ms-cover" id="ms-cover"></div>
+    <div class="ms-btns">
+      <button class="ms-btn cancel" onclick="closeMusicSend()">取消</button>
+      <button class="ms-btn ok" onclick="confirmMusicSend()">发送</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL = 'https://mulbmncmfeadvrienvqb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_lTxspnB5QDQqpFza_kZmXA_5EspN3y8';
@@ -1055,7 +1244,11 @@ function plusClick(name){
     sendLocation();
     return;
   }
-  if (name === '音乐') { alert('音乐 还没做'); return; }
+  if (name === '音乐') {
+    document.getElementById('plus-panel').classList.remove('show');
+    openMusic();
+    return;
+  }
   if (name === '礼物') { alert('礼物 还没做'); return; }
   if (name === '外卖') { alert('外卖 还没做'); return; }
 }
@@ -1828,6 +2021,14 @@ async function pollNewMessages(){
           appendMsg('her', c);
         }
       }
+      else if (c.startsWith('[音乐]')) {
+        try {
+          const card = JSON.parse(c.slice(4));
+          appendMusic('her', card);
+        } catch (e) {
+          appendMsg('her', c);
+        }
+      }
       else appendMsg('her', c);
     });
     lastPolledId = list[list.length - 1].id;
@@ -1885,6 +2086,7 @@ async function loadListTime(){
     if (preview.startsWith('[表情]')) preview = '[表情]';
     else if (preview.startsWith('[图片]')) preview = '[图片]';
     else if (preview.startsWith('[位置]')) preview = '[位置]';
+    else if (preview.startsWith('[音乐]')) preview = '[音乐]';
     else if (preview.startsWith('[视频]')) preview = '[视频]';
     document.getElementById('list-preview').textContent = preview || '—';
   } catch(e){}
@@ -1907,6 +2109,190 @@ async function loadStatusBar(){
 }
 
 
+
+/* ===== 音乐 ===== */
+let musicList = [];
+let currentMusic = null;
+
+async function loadMusic(){
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/songs?owner=eq.${OWNER}&order=id.asc`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
+    );
+    const arr = await res.json();
+    musicList = Array.isArray(arr) ? arr : [];
+    renderMusicList();
+  } catch(e){ console.error(e); }
+}
+
+function renderMusicList(){
+  const box = document.getElementById('music-list');
+  if (!box) return;
+  const kw = (document.getElementById('music-search-input').value || '').trim().toLowerCase();
+  const list = kw
+    ? musicList.filter(s => (s.title || '').toLowerCase().includes(kw) || (s.artist || '').toLowerCase().includes(kw))
+    : musicList;
+  box.innerHTML = '';
+  if (list.length === 0){
+    box.innerHTML = '<div class="music-empty">没有找到歌曲</div>';
+    return;
+  }
+  list.forEach(song => {
+    const row = document.createElement('div');
+    row.className = 'music-row';
+    row.onclick = () => openMusicSend(song);
+    const t = document.createElement('div');
+    t.className = 'music-row-title';
+    t.textContent = song.title;
+    const a = document.createElement('div');
+    a.className = 'music-row-artist';
+    a.textContent = song.artist;
+    row.appendChild(t);
+    row.appendChild(a);
+    box.appendChild(row);
+  });
+}
+
+function openMusic(){
+  document.getElementById('pane-me').style.display = 'none';
+  document.getElementById('pane-settings').style.display = 'none';
+  document.getElementById('pane-music').style.display = 'block';
+  document.getElementById('tabbar').style.display = 'none';
+  document.getElementById('music-search-input').value = '';
+  loadMusic();
+}
+function closeMusic(){
+  document.getElementById('pane-music').style.display = 'none';
+  document.getElementById('pane-settings').style.display = 'block';
+}
+function openMusicAdd(){
+  document.getElementById('music-add-title').value = '';
+  document.getElementById('music-add-artist').value = '';
+  document.getElementById('pane-music').style.display = 'none';
+  document.getElementById('pane-music-add').style.display = 'block';
+}
+function closeMusicAdd(){
+  document.getElementById('pane-music-add').style.display = 'none';
+  document.getElementById('pane-music').style.display = 'block';
+}
+async function saveMusicAdd(){
+  const title = document.getElementById('music-add-title').value.trim();
+  const artist = document.getElementById('music-add-artist').value.trim();
+  if (!title) { alert('请输入歌名'); return; }
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/songs`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ owner: OWNER, title: title, artist: artist })
+    });
+    closeMusicAdd();
+    loadMusic();
+  } catch(e){ alert('保存失败'); }
+}
+
+function openMusicSend(song){
+  currentMusic = song;
+  document.getElementById('ms-title').textContent = song.title;
+  document.getElementById('ms-artist').textContent = song.artist;
+  const cover = document.getElementById('ms-cover');
+  cover.innerHTML = '<img src="https://pangyufei-card.oss-cn-shenzhen.aliyuncs.com/icon_1791947786341_limr4q.png" alt="">';
+  document.getElementById('music-send-popup').classList.add('show');
+}
+function closeMusicSend(){
+  document.getElementById('music-send-popup').classList.remove('show');
+  currentMusic = null;
+}
+async function confirmMusicSend(){
+  if (!currentMusic) return;
+  const song = currentMusic;
+  closeMusicSend();
+  closeMusic();
+  appendMusic('you', song);
+  fetch(`${SUPABASE_URL}/rest/v1/messages`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify([{ owner: OWNER, role: 'user', content: '[音乐]' + JSON.stringify({ title: song.title, artist: song.artist }) }])
+  }).catch(e => console.error(e));
+  headerName.textContent = '对方正在输入';
+  headerName.style.fontSize = '1.8vh';
+  try {
+    const loc = await getLocation();
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: '[音乐]' + JSON.stringify({ title: song.title, artist: song.artist }), owner: OWNER, lat: loc.lat, lon: loc.lon })
+    });
+    const data = await res.json();
+    const replyText = data.reply || '……';
+    const parts = replyText.split(/\n+/).map(s => s.trim()).filter(Boolean);
+    for (let i = 0; i < parts.length; i++) {
+      if (i > 0) await new Promise(r => setTimeout(r, 600 + Math.random() * 400));
+      const row = document.createElement('div');
+      row.className = 'msg-row her';
+      row.appendChild(makeAvatar('her'));
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = parts[i];
+      row.appendChild(bubble);
+      chatBody.appendChild(row);
+      scrollBottom();
+    }
+    if (data.sticker) {
+      await new Promise(r => setTimeout(r, 600));
+      appendSticker('her', data.sticker);
+    }
+  } catch(e) {
+    console.error(e);
+  } finally {
+    headerName.textContent = '哒哒';
+    headerName.style.fontSize = '';
+    loadListTime();
+  }
+}
+
+function appendMusic(who, card){
+  const row = document.createElement('div');
+  row.className = 'msg-row ' + who;
+  row.appendChild(makeAvatar(who));
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble bubble-music';
+  const box = document.createElement('div');
+  box.className = 'music-card';
+  const t = document.createElement('div');
+  t.className = 'mc-title';
+  t.textContent = card.title || '';
+  const a = document.createElement('div');
+  a.className = 'mc-artist';
+  a.textContent = card.artist || '';
+  const cover = document.createElement('div');
+  cover.className = 'mc-cover';
+  const coverImg = document.createElement('img');
+  coverImg.src = 'https://pangyufei-card.oss-cn-shenzhen.aliyuncs.com/icon_1791947786341_limr4q.png';
+  coverImg.alt = '';
+  cover.appendChild(coverImg);
+  const src = document.createElement('div');
+  src.className = 'mc-source';
+  src.textContent = 'PUPU音乐';
+  box.appendChild(t);
+  box.appendChild(a);
+  box.appendChild(cover);
+  box.appendChild(src);
+  bubble.appendChild(box);
+  row.appendChild(bubble);
+  chatBody.appendChild(row);
+  scrollBottom();
+}
 
 /* ===== 表情包 ===== */
 async function loadStickers(){
@@ -2130,6 +2516,14 @@ async function loadHistory(){
         try {
           const card = JSON.parse(c.slice(4));
           appendLocation(who, card);
+        } catch (e) {
+          appendMsg(who, c);
+        }
+      }
+      else if (c.startsWith('[音乐]')) {
+        try {
+          const card = JSON.parse(c.slice(4));
+          appendMusic(who, card);
         } catch (e) {
           appendMsg(who, c);
         }
@@ -2504,6 +2898,8 @@ updateSendState();
 
 setInterval(loadListTime, 60000);
 setInterval(loadStatusBar, 60000);
+
+document.getElementById('music-search-input').addEventListener('input', renderMusicList);
 </script>
 
 </body>
