@@ -355,7 +355,8 @@ body{
   background:transparent;
 }
 #input-cover.hide{
-  display:none;
+  pointer-events:none;
+  opacity:0;
 }
 /* ===== 底栏抬起 ===== */
 #chat-footer.lifted{
@@ -2286,15 +2287,12 @@ function coverClick(){
   const footer = document.getElementById('chat-footer');
   const cover = document.getElementById('input-cover');
   const body = document.getElementById('chat-body');
+  inputMobile.focus();
   footer.classList.add('lifted');
   cover.classList.add('hide');
-  body.style.paddingBottom = '55vh';   /* ← 让消息往上走，数字比 38vh 大一点 */
+  body.style.paddingBottom = '55vh';
   setTimeout(scrollBottom, 100);
   setTimeout(scrollBottom, 300);
-  // 抬上去后，把焦点给真输入框 → 键盘弹起
-  setTimeout(() => {
-    inputMobile.focus();
-  }, 300);
 }
 
 /* 输入框失焦 → 底栏落回来，透明盖恢复 */
