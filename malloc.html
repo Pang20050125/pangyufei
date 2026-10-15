@@ -3377,8 +3377,8 @@ async function send(){
       row.appendChild(bubble);
       chatBody.appendChild(row);
       scrollBottom();
-      localSentContents.set('her:' + parts[i], (localSentContents.get('her:' + parts[i]) || 0) + 1);
     }
+    localSentContents.set('her:' + replyText, (localSentContents.get('her:' + replyText) || 0) + 1);
 
     if (data.sticker) {
       await new Promise(r => setTimeout(r, 600));
