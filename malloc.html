@@ -1253,6 +1253,30 @@ body{
 </div>
 
 <script>
+const IMG_CACHE_PREFIX = 'malloc_img_';
+function cachedImg(url){
+  if (!url) return url;
+  try {
+    const cached = localStorage.getItem(IMG_CACHE_PREFIX + url);
+    if (cached) return cached;
+  } catch(e){}
+  fetch(url)
+    .then(r => r.blob())
+    .then(blob => new Promise(res => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result);
+      fr.readAsDataURL(blob);
+    }))
+    .then(base64 => {
+      try { localStorage.setItem(IMG_CACHE_PREFIX + url, base64); } catch(e){}
+      document.querySelectorAll('img[data-src="' + url + '"]').forEach(img => {
+        img.src = base64;
+      });
+    })
+    .catch(e => console.error('cache img fail', url, e));
+  return url;
+}
+
 const SUPABASE_URL = 'https://mulbmncmfeadvrienvqb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_lTxspnB5QDQqpFza_kZmXA_5EspN3y8';
 const OWNER = 'xia';
@@ -2002,7 +2026,9 @@ function appendLocation(who, card){
   const map = document.createElement('div');
   map.className = 'loc-map';
   const mapImg = document.createElement('img');
-  mapImg.src = 'https://pangyufei-card.oss-cn-shenzhen.aliyuncs.com/icon_1791943553112_1g1be5.png';
+  const mapUrl = 'https://pangyufei-card.oss-cn-shenzhen.aliyuncs.com/icon_1791943553112_1g1be5.png';
+  mapImg.setAttribute('data-src', mapUrl);
+  mapImg.src = cachedImg(mapUrl);
   mapImg.alt = '';
   map.appendChild(mapImg);
 
@@ -2287,7 +2313,8 @@ function openMusicSend(song){
   document.getElementById('ms-title').textContent = song.title;
   document.getElementById('ms-artist').textContent = song.artist;
   const cover = document.getElementById('ms-cover');
-  cover.innerHTML = '<img src="https://pangyufei-card.oss-cn-shenzhen.aliyuncs.com/icon_1791947786341_limr4q.png" alt="">';
+  const coverUrl = 'https://pangyufei-card.oss-cn-shenzhen.aliyuncs.com/icon_1791947786341_limr4q.png';
+  cover.innerHTML = '<img data-src="' + coverUrl + '" src="' + cachedImg(coverUrl) + '" alt="">';
   document.getElementById('music-send-popup').classList.add('show');
 }
 function closeMusicSend(){
@@ -2383,7 +2410,7 @@ function appendMusic(who, card){
   const cover = document.createElement('div');
   cover.className = 'mc-cover';
   const coverImg = document.createElement('img');
-  coverImg.src = 'https://pangyufei-card.oss-cn-shenzhen.aliyuncs.com/icon_1791947786341_limr4q.png';
+  coverImg.src = cachedImg('https://pangyufei-card.oss-cn-shenzhen.aliyuncs.com/icon_1791947786341_limr4q.png');
   coverImg.alt = '';
   cover.appendChild(coverImg);
 
