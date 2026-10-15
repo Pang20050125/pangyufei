@@ -2163,6 +2163,7 @@ async function sendLocation(){
   };
 
   appendLocation('you', card);
+  localSentContents.set('[位置]' + JSON.stringify(card), (localSentContents.get('[位置]' + JSON.stringify(card)) || 0) + 1);
 
   headerName.textContent = '对方正在输入';
   headerName.style.fontSize = '1.8vh';
@@ -2312,18 +2313,19 @@ async function pollNewMessages(){
     const list = listRaw.reverse();
     list.forEach(m => {
       if (renderedIds.has(m.id)) return;
-      if (m.role === 'user' && localSentContents.has(m.content || '')) {
-        const cnt = localSentContents.get(m.content || '');
+      const who = m.role === 'user' ? 'you' : 'her';
+      const key = (who === 'her' ? 'her:' : '') + (m.content || '');
+      if (localSentContents.has(key)) {
+        const cnt = localSentContents.get(key);
         if (cnt <= 1) {
-          localSentContents.delete(m.content || '');
+          localSentContents.delete(key);
         } else {
-          localSentContents.set(m.content || '', cnt - 1);
+          localSentContents.set(key, cnt - 1);
         }
         renderedIds.add(m.id);
         return;
       }
       renderedIds.add(m.id);
-      const who = m.role === 'user' ? 'you' : 'her';
       const t = new Date(m.created_at).getTime();
       if (t - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(t);
       lastMsgTime = t;
@@ -3375,11 +3377,13 @@ async function send(){
       row.appendChild(bubble);
       chatBody.appendChild(row);
       scrollBottom();
+      localSentContents.set('her:' + parts[i], (localSentContents.get('her:' + parts[i]) || 0) + 1);
     }
 
     if (data.sticker) {
       await new Promise(r => setTimeout(r, 600));
       appendSticker('her', data.sticker);
+      localSentContents.set('her:[表情]' + data.sticker, (localSentContents.get('her:[表情]' + data.sticker) || 0) + 1);
     }
   } catch(e){
     appendMsg('her', '……网络好像不太对。');
