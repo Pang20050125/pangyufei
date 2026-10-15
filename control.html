@@ -148,8 +148,8 @@ header .sub{font-size:12px;color:#ff8a8a;margin-top:4px;opacity:0.8}
         <span class="v" id="s-reason">—</span>
       </div>
       <div class="info-line">
-        <span class="k">上次事件</span>
-        <span class="v" id="s-event">—</span>
+        <span class="k">上次更新</span>
+        <span class="v" id="s-updated">—</span>
       </div>
       <div class="info-line">
         <span class="k">能量</span>
@@ -203,6 +203,14 @@ header .sub{font-size:12px;color:#ff8a8a;margin-top:4px;opacity:0.8}
         <div class="mood-bar">
           <div class="label"><span>害羞</span><span class="val" id="v-shame">0</span></div>
           <div class="mood-track"><div class="mood-fill" id="b-shame" style="width:0%;background:#ff8a8a"></div></div>
+        </div>
+        <div class="mood-bar">
+          <div class="label"><span>幸福值</span><span class="val" id="v-happiness">0</span></div>
+          <div class="mood-track"><div class="mood-fill" id="b-happiness" style="width:0%;background:#ffab91"></div></div>
+        </div>
+        <div class="mood-bar">
+          <div class="label"><span>寂寞值</span><span class="val" id="v-loneliness">0</span></div>
+          <div class="mood-track"><div class="mood-fill" id="b-loneliness" style="width:0%;background:#7e57c2"></div></div>
         </div>
       </div>
     </div>
@@ -334,11 +342,13 @@ async function refresh() {
         setBar('sadness', e.sadness);
         setBar('fear', e.fear);
         setBar('shame', e.shame);
+        setBar('happiness', e.happiness ?? 50);
+        setBar('loneliness', e.loneliness ?? 20);
 
         document.getElementById('s-last').textContent = fmtTime(e.last_interaction);
         document.getElementById('s-activity').textContent = e.last_event || '—';
         document.getElementById('s-reason').textContent = e.mood_reason || '—';
-        document.getElementById('s-event').textContent = e.mood || '—';
+        document.getElementById('s-updated').textContent = fmtTime(e.updated_at);
         document.getElementById('s-energy').textContent = (e.energy ?? '—') + '%';
 
         log('情绪已同步', 'ok');
