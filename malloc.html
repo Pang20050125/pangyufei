@@ -2078,6 +2078,7 @@ async function handlePickImage(file) {
       chatBody.appendChild(row);
       scrollBottom();
     }
+    localSentContents.set('her:' + replyText, (localSentContents.get('her:' + replyText) || 0) + 1);
     if (data.sticker) {
       await new Promise(r => setTimeout(r, 600));
       appendSticker('her', data.sticker);
@@ -2189,6 +2190,7 @@ async function sendLocation(){
       chatBody.appendChild(row);
       scrollBottom();
     }
+    localSentContents.set('her:' + replyText, (localSentContents.get('her:' + replyText) || 0) + 1);
     if (data.sticker) {
       await new Promise(r => setTimeout(r, 600));
       appendSticker('her', data.sticker);
@@ -2580,6 +2582,7 @@ async function confirmMusicSend(){
       chatBody.appendChild(row);
       scrollBottom();
     }
+    localSentContents.set('her:' + replyText, (localSentContents.get('her:' + replyText) || 0) + 1);
     if (data.sticker) {
       await new Promise(r => setTimeout(r, 600));
       appendSticker('her', data.sticker);
@@ -2866,6 +2869,7 @@ async function confirmGiftSend(){
       chatBody.appendChild(row);
       scrollBottom();
     }
+    localSentContents.set('her:' + replyText, (localSentContents.get('her:' + replyText) || 0) + 1);
     if (data.sticker){
       await new Promise(r => setTimeout(r, 600));
       appendSticker('her', data.sticker);
