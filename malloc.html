@@ -1490,6 +1490,8 @@ let lastPolledId = 0;
 let pollingTimer = null;
 let renderedIds = new Set();
 let localSentContents = new Map();
+let lastLocalAt = 0;
+let lastRenderedId = 0;
 
 /* ===== 图标 ===== */
 /* ===== 加号面板 ===== */
@@ -2050,6 +2052,7 @@ async function handlePickImage(file) {
 
   // 3. 聊天里显示图片气泡
   appendImage('you', url);
+  lastLocalAt = Date.now();
   localSentContents.set('[图片]' + url, (localSentContents.get('[图片]' + url) || 0) + 1);
 
   // 4. 触发送消息流程（让她回）
@@ -2164,6 +2167,7 @@ async function sendLocation(){
   };
 
   appendLocation('you', card);
+  lastLocalAt = Date.now();
   localSentContents.set('[位置]' + JSON.stringify(card), (localSentContents.get('[位置]' + JSON.stringify(card)) || 0) + 1);
 
   headerName.textContent = '对方正在输入';
@@ -2315,19 +2319,13 @@ async function pollNewMessages(){
     const list = listRaw.reverse();
     list.forEach(m => {
       if (renderedIds.has(m.id)) return;
-      const who = m.role === 'user' ? 'you' : 'her';
-      const key = (who === 'her' ? 'her:' : '') + (m.content || '');
-      if (localSentContents.has(key)) {
-        const cnt = localSentContents.get(key);
-        if (cnt <= 1) {
-          localSentContents.delete(key);
-        } else {
-          localSentContents.set(key, cnt - 1);
-        }
+      if (m.id <= lastRenderedId) {
         renderedIds.add(m.id);
         return;
       }
       renderedIds.add(m.id);
+      if (m.id > lastRenderedId) lastRenderedId = m.id;
+      const who = m.role === 'user' ? 'you' : 'her';
       const t = new Date(m.created_at).getTime();
       if (t - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(t);
       lastMsgTime = t;
@@ -2556,6 +2554,7 @@ async function confirmMusicSend(){
   document.getElementById('pane-music').style.display = 'none';
   document.getElementById('chat-screen').classList.add('active');
   appendMusic('you', song);
+  lastLocalAt = Date.now();
   const musicKey = '[音乐]' + JSON.stringify({ title: song.title, artist: song.artist });
   localSentContents.set(musicKey, (localSentContents.get(musicKey) || 0) + 1);
   headerName.textContent = '对方正在输入';
@@ -2826,6 +2825,7 @@ async function confirmGiftSend(){
   document.getElementById('pane-gift').style.display = 'none';
   document.getElementById('chat-screen').classList.add('active');
   appendGift('you', g);
+  lastLocalAt = Date.now();
   const giftKey = '[礼物]' + JSON.stringify({
     name: g.name,
     price: g.price,
@@ -3147,6 +3147,7 @@ async function saveSticker(){
 function sendSticker(url){
   toggleStickerPanel();
   appendSticker('you', url);
+  lastLocalAt = Date.now();
   localSentContents.set('[表情]' + url, (localSentContents.get('[表情]' + url) || 0) + 1);
   fetch(`${SUPABASE_URL}/rest/v1/messages`, {
     method: 'POST',
@@ -3354,6 +3355,7 @@ async function send(){
   lastMsgTime = now;
 
   appendMsg('you', content);
+  lastLocalAt = Date.now();
   localSentContents.set(content, (localSentContents.get(content) || 0) + 1);
 
   headerName.textContent = '对方正在输入';
