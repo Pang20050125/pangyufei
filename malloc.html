@@ -1859,11 +1859,14 @@ async function handlePickImage(file) {
     loadListTime();
     try {
       const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=5`,
+        `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=200`,
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
       );
       const arr = await r.json();
-      if (Array.isArray(arr)) arr.forEach(m => renderedIds.add(m.id));
+      if (Array.isArray(arr)) {
+        arr.forEach(m => renderedIds.add(m.id));
+        saveHistoryToCache(arr.reverse());
+      }
     } catch(e){}
   }
 }
@@ -1965,11 +1968,14 @@ async function sendLocation(){
     loadListTime();
     try {
       const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=5`,
+        `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=200`,
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
       );
       const arr = await r.json();
-      if (Array.isArray(arr)) arr.forEach(m => renderedIds.add(m.id));
+      if (Array.isArray(arr)) {
+        arr.forEach(m => renderedIds.add(m.id));
+        saveHistoryToCache(arr.reverse());
+      }
     } catch(e){}
   }
 }
@@ -2335,11 +2341,14 @@ async function confirmMusicSend(){
     loadListTime();
     try {
       const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=5`,
+        `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=200`,
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
       );
       const arr = await r.json();
-      if (Array.isArray(arr)) arr.forEach(m => renderedIds.add(m.id));
+      if (Array.isArray(arr)) {
+        arr.forEach(m => renderedIds.add(m.id));
+        saveHistoryToCache(arr.reverse());
+      }
     } catch(e){}
     musicSending = false;
   }
@@ -2576,12 +2585,15 @@ function sendSticker(url){
     body: JSON.stringify([{ owner: OWNER, role: 'user', content: '[表情]' + url }])
   })
   .then(() => fetch(
-    `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=5`,
+    `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=200`,
     { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
   ))
   .then(r => r.json())
   .then(arr => {
-    if (Array.isArray(arr)) arr.forEach(m => renderedIds.add(m.id));
+    if (Array.isArray(arr)) {
+      arr.forEach(m => renderedIds.add(m.id));
+      saveHistoryToCache(arr.reverse());
+    }
   })
   .catch(e => console.error(e));
 }
@@ -2601,7 +2613,65 @@ function appendSticker(who, url){
 }
 
 /* ===== 历史 ===== */
+function renderHistoryList(list){
+  chatBody.innerHTML = '';
+  lastMsgTime = 0;
+  renderedIds.clear();
+  list.forEach(m => {
+    renderedIds.add(m.id);
+  });
+  list.forEach(m => {
+    const t = new Date(m.created_at).getTime();
+    if (t - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(t);
+    lastMsgTime = t;
+    const c = m.content || '';
+    const who = m.role === 'user' ? 'you' : 'her';
+    if (c.startsWith('[表情]')) appendSticker(who, c.slice(4));
+    else if (c.startsWith('[图片]')) appendImage(who, c.slice(4));
+    else if (c.startsWith('[位置]')) {
+      try {
+        const card = JSON.parse(c.slice(4));
+        appendLocation(who, card);
+      } catch (e) {
+        appendMsg(who, c);
+      }
+    }
+    else if (c.startsWith('[音乐]')) {
+      try {
+        const card = JSON.parse(c.slice(4));
+        appendMusic(who, card);
+      } catch (e) {
+        appendMsg(who, c);
+      }
+    }
+    else appendMsg(who, c);
+  });
+  scrollBottom();
+}
+
+function loadHistoryFromCache(){
+  try {
+    const raw = localStorage.getItem('malloc_history_cache');
+    if (!raw) return false;
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list) || list.length === 0) return false;
+    renderHistoryList(list);
+    return true;
+  } catch(e){ console.error(e); return false; }
+}
+
+function saveHistoryToCache(list){
+  try {
+    const last200 = list.slice(-200);
+    localStorage.setItem('malloc_history_cache', JSON.stringify(last200));
+  } catch(e){ console.error(e); }
+}
+
 async function loadHistory(){
+  // 1. 先读缓存，秒显
+  const fromCache = loadHistoryFromCache();
+
+  // 2. 再拉网络
   try {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=500`,
@@ -2610,39 +2680,12 @@ async function loadHistory(){
     const listRaw = await res.json();
     if (!Array.isArray(listRaw)) return;
     const list = listRaw.reverse();
-    chatBody.innerHTML = '';
-    lastMsgTime = 0;
-    renderedIds.clear();
-    list.forEach(m => {
-      renderedIds.add(m.id);
-    });
-    list.forEach(m => {
-      const t = new Date(m.created_at).getTime();
-      if (t - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(t);
-      lastMsgTime = t;
-      const c = m.content || '';
-      const who = m.role === 'user' ? 'you' : 'her';
-      if (c.startsWith('[表情]')) appendSticker(who, c.slice(4));
-      else if (c.startsWith('[图片]')) appendImage(who, c.slice(4));
-      else if (c.startsWith('[位置]')) {
-        try {
-          const card = JSON.parse(c.slice(4));
-          appendLocation(who, card);
-        } catch (e) {
-          appendMsg(who, c);
-        }
-      }
-      else if (c.startsWith('[音乐]')) {
-        try {
-          const card = JSON.parse(c.slice(4));
-          appendMusic(who, card);
-        } catch (e) {
-          appendMsg(who, c);
-        }
-      }
-      else appendMsg(who, c);
-    });
-    scrollBottom();
+
+    // 3. 存缓存
+    saveHistoryToCache(list);
+
+    // 4. 渲染（覆盖缓存的）
+    renderHistoryList(list);
   } catch(e){ console.error(e); }
 }
 
@@ -2773,11 +2816,14 @@ async function send(){
     loadListTime();
     try {
       const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=5`,
+        `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=200`,
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
       );
       const arr = await r.json();
-      if (Array.isArray(arr)) arr.forEach(m => renderedIds.add(m.id));
+      if (Array.isArray(arr)) {
+        arr.forEach(m => renderedIds.add(m.id));
+        saveHistoryToCache(arr.reverse());
+      }
     } catch(e){}
   }
 }
