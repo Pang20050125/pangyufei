@@ -365,11 +365,20 @@ ${emotion?.mood_reason ? '原因：' + emotion.mood_reason : ''}
     if (stickerUrl) {
       msgList.push({ owner, role: 'assistant', content: '[表情]' + stickerUrl });
     }
-    await safeFetch(`${SUPABASE_URL}/rest/v1/messages`, {
-      method: 'POST',
-      headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
-      body: JSON.stringify(msgList)
-    });
+    const lastUserMsg = historyAsc.length > 0
+      ? historyAsc[historyAsc.length - 1]
+      : null;
+    if (lastUserMsg && lastUserMsg.role === 'user' && lastUserMsg.content === content) {
+      // 上一次请求已经存过了，跳过 user 那条
+      msgList.shift();
+    }
+    if (msgList.length > 0) {
+      await safeFetch(`${SUPABASE_URL}/rest/v1/messages`, {
+        method: 'POST',
+        headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(msgList)
+      });
+    }
 
     // ===== 8. 情绪更新 =====
     let newEmo = null;
