@@ -790,7 +790,10 @@ $('file-input').addEventListener('change', async e => {
     fr.onload = ev => r(ev.target.result);
     fr.readAsDataURL(f);
   });
-  pendingImage = await compressImage(raw, 1600, 0.85);
+  const isPng = (uploadTargetField === '__gift__' || uploadTargetField === '__icon__');
+  pendingImage = isPng
+    ? await compressPng(raw, 1600)
+    : await compressImage(raw, 1600, 0.85);
   const preview = $('upload-preview');
   preview.style.backgroundImage = 'url(' + pendingImage + ')';
   preview.classList.add('has-image');
@@ -806,7 +809,7 @@ async function saveUpload(){
   btn.textContent = '上传中…';
 
   try {
-    const fn = 'admin_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.jpg';
+    const fn = 'admin_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.png';
     const url = await uploadToOSS(pendingImage, fn);
 
     if (uploadTargetField === '__icon__' && replacingIcon) {
