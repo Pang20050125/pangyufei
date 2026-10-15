@@ -1416,7 +1416,11 @@ function setTopIcon(id, name, fallbackSvg){
   const el = document.getElementById(id);
   if (!el) return;
   const url = iconMap[name];
-  el.innerHTML = url ? '<img src="' + url + '" alt="">' : fallbackSvg;
+  if (url) {
+    el.innerHTML = '<img data-src="' + url + '" src="' + cachedImg(url) + '" alt="">';
+  } else {
+    el.innerHTML = fallbackSvg;
+  }
 }
 
 function applyIcons(){
@@ -1440,7 +1444,8 @@ function applyIcons(){
     const name = isActive ? img.dataset.iconActive : img.dataset.icon;
     const url = iconMap[name] || iconMap[img.dataset.icon];
     if (url) {
-      img.src = url;
+      img.setAttribute('data-src', url);
+      img.src = cachedImg(url);
       img.style.display = 'block';
     } else {
       img.style.display = 'none';
