@@ -863,11 +863,17 @@ body{
 .pay-card .pay-btn.ok{color:#07C160;font-weight:500}
 /* 已签收小字 */
 .gift-received{
-  text-align:center;
-  font-size:var(--fs-time);
-  color:#666666;
-  letter-spacing:0.5px;
+  display:flex;
+  justify-content:center;
   margin:1vh 0 2vh;
+}
+.gift-received span{
+  font-size:var(--fs-time);
+  color:var(--c-gray);
+  letter-spacing:0.5px;
+  background:rgba(255,255,255,0.8);
+  padding:0.4vh 2vw;
+  border-radius:1vh;
 }
 .gift-send-card .gs-title{
   font-size:2vh;color:#111111;
@@ -2955,7 +2961,9 @@ function appendGift(who, card){
   if (who === 'you'){
     const recv = document.createElement('div');
     recv.className = 'gift-received';
-    recv.textContent = 'malloc 已签收 OvO';
+    const recvSpan = document.createElement('span');
+    recvSpan.textContent = 'malloc 已签收 OvO';
+    recv.appendChild(recvSpan);
     chatBody.appendChild(recv);
   }
 
