@@ -2319,12 +2319,12 @@ async function pollNewMessages(){
     const list = listRaw.reverse();
     list.forEach(m => {
       if (renderedIds.has(m.id)) return;
-      if (m.id <= lastRenderedId) {
+      const mTime = new Date(m.created_at).getTime();
+      if (mTime <= lastLocalAt + 10000) {
         renderedIds.add(m.id);
         return;
       }
       renderedIds.add(m.id);
-      if (m.id > lastRenderedId) lastRenderedId = m.id;
       const who = m.role === 'user' ? 'you' : 'her';
       const t = new Date(m.created_at).getTime();
       if (t - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(t);
