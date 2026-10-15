@@ -2546,7 +2546,8 @@ async function confirmMusicSend(){
   document.getElementById('pane-music').style.display = 'none';
   document.getElementById('chat-screen').classList.add('active');
   appendMusic('you', song);
-  localSentContents.set('[音乐]' + JSON.stringify({ title: song.title, artist: song.artist }), (localSentContents.get('[音乐]' + JSON.stringify({ title: song.title, artist: song.artist })) || 0) + 1);
+  const musicKey = '[音乐]' + JSON.stringify({ title: song.title, artist: song.artist });
+  localSentContents.set(musicKey, (localSentContents.get(musicKey) || 0) + 1);
   headerName.textContent = '对方正在输入';
   headerName.style.fontSize = '1.8vh';
   try {
@@ -2814,7 +2815,14 @@ async function confirmGiftSend(){
   document.getElementById('pane-gift').style.display = 'none';
   document.getElementById('chat-screen').classList.add('active');
   appendGift('you', g);
-  localSentContents.set('[礼物]' + JSON.stringify({ name: g.name, price: g.price }), (localSentContents.get('[礼物]' + JSON.stringify({ name: g.name, price: g.price })) || 0) + 1);
+  const giftKey = '[礼物]' + JSON.stringify({
+    name: g.name,
+    price: g.price,
+    joy_value: g.joy_value,
+    happiness_value: g.happiness_value,
+    loneliness_value: g.loneliness_value
+  });
+  localSentContents.set(giftKey, (localSentContents.get(giftKey) || 0) + 1);
   headerName.textContent = '对方正在输入';
   headerName.style.fontSize = '1.8vh';
   try {
