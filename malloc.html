@@ -817,6 +817,58 @@ body{
   padding:2.5vh 4vw 0;
   box-shadow:0 4px 30px rgba(0,0,0,0.15);
 }
+#gift-pay-popup{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.4);
+  display:none;
+  align-items:center;justify-content:center;
+  z-index:1000;
+}
+#gift-pay-popup.show{display:flex}
+.pay-card{
+  width:76vw;max-width:420px;
+  background:#ffffff;
+  border-radius:1.5vh;
+  padding:3vh 5vw 0;
+  box-shadow:0 4px 30px rgba(0,0,0,0.15);
+  text-align:center;
+}
+.pay-card .pay-title{
+  font-size:1.6vh;color:#999999;
+  margin-bottom:2.5vh;
+}
+.pay-card .pay-amount{
+  font-size:5vh;color:#111111;
+  font-weight:500;
+  margin-bottom:1.5vh;
+  letter-spacing:-0.5px;
+}
+.pay-card .pay-balance{
+  font-size:1.5vh;color:#999999;
+  margin-bottom:3vh;
+}
+.pay-card .pay-btns{
+  display:flex;
+  margin:0 -5vw;
+  border-top:0.5px solid #eeeeee;
+}
+.pay-card .pay-btn{
+  flex:1;
+  border:none;background:transparent;
+  font-size:2vh;font-family:inherit;
+  padding:2vh 0;
+  cursor:pointer;
+}
+.pay-card .pay-btn.cancel{color:#111111}
+.pay-card .pay-btn.ok{color:#07C160;font-weight:500}
+/* 已签收小字 */
+.gift-received{
+  text-align:center;
+  font-size:var(--fs-time);
+  color:#666666;
+  letter-spacing:0.5px;
+  margin:1vh 0 2vh;
+}
 .gift-send-card .gs-title{
   font-size:2vh;color:#111111;
   text-align:left;font-weight:500;
@@ -1360,7 +1412,7 @@ body{
   </div>
 </div>
 
-<!-- 送礼弹窗 -->
+<!-- 送礼确认弹窗 -->
 <div id="gift-send-popup">
   <div class="gift-send-card">
     <div class="gs-title" id="gs-title">—</div>
@@ -1368,6 +1420,19 @@ body{
     <div class="gs-btns">
       <button class="gs-btn cancel" onclick="closeGiftSend()">取消</button>
       <button class="gs-btn ok" id="gift-send-ok-btn">送礼</button>
+    </div>
+  </div>
+</div>
+
+<!-- 付款界面 -->
+<div id="gift-pay-popup">
+  <div class="pay-card">
+    <div class="pay-title">转账给 庞氏集团无限公司</div>
+    <div class="pay-amount" id="pay-amount">¥0.00</div>
+    <div class="pay-balance" id="pay-balance">余额：¥0.00</div>
+    <div class="pay-btns">
+      <button class="pay-btn cancel" onclick="closeGiftPay()">取消</button>
+      <button class="pay-btn ok" id="gift-pay-ok-btn">确认付款</button>
     </div>
   </div>
 </div>
@@ -1860,6 +1925,7 @@ function renderServiceIcons(){
 }
 /* ===== 钱包 ===== */
 let walletList = [];
+let walletBalance = 0;
 
 async function loadWallet(){
   try {
@@ -1869,6 +1935,12 @@ async function loadWallet(){
     );
     const arr = await res.json();
     walletList = Array.isArray(arr) ? arr : [];
+    let bal = 0;
+    walletList.forEach(w => {
+      if (w.type === 'income') bal += Number(w.amount);
+      else bal -= Number(w.amount);
+    });
+    walletBalance = bal;
     renderWallet();
   } catch(e){ console.error(e); }
 }
@@ -2010,6 +2082,7 @@ async function handlePickImage(file) {
     headerName.textContent = '哒哒';
     headerName.style.fontSize = '';
     loadListTime();
+    loadWallet();
     try {
       const r = await fetch(
         `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=200`,
@@ -2119,6 +2192,7 @@ async function sendLocation(){
     headerName.textContent = '哒哒';
     headerName.style.fontSize = '';
     loadListTime();
+    loadWallet();
     try {
       const r = await fetch(
         `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=200`,
@@ -2198,6 +2272,7 @@ function closeChat(){
   document.getElementById('music-add-popup').classList.remove('show');
   document.getElementById('pane-gift').style.display = 'none';
   document.getElementById('gift-send-popup').classList.remove('show');
+  document.getElementById('gift-pay-popup').classList.remove('show');
   document.getElementById('pane-wechat').style.display = 'block';
   document.getElementById('tabbar').style.display = 'flex';
   document.getElementById('list-screen').querySelector('.topbar').style.display = 'flex';
@@ -2506,6 +2581,7 @@ async function confirmMusicSend(){
     headerName.textContent = '哒哒';
     headerName.style.fontSize = '';
     loadListTime();
+    loadWallet();
     try {
       const r = await fetch(
         `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=200`,
@@ -2656,6 +2732,7 @@ function openGift(){
   document.getElementById('tabbar').style.display = 'none';
   document.getElementById('list-screen').querySelector('.topbar').style.display = 'none';
   document.getElementById('list-screen').querySelector('.status-bar').style.display = 'none';
+  loadWallet();
   loadGifts();
 }
 
@@ -2688,13 +2765,52 @@ function closeGiftSend(){
   currentGift = null;
 }
 
+function openGiftPay(){
+  if (!currentGift) return;
+  document.getElementById('gift-send-popup').classList.remove('show');
+  document.getElementById('pay-amount').textContent = '¥' + (currentGift.price || 0) + '.00';
+  document.getElementById('pay-balance').textContent = '余额：¥' + walletBalance.toFixed(2);
+  document.getElementById('gift-pay-popup').classList.add('show');
+}
+
+function closeGiftPay(){
+  document.getElementById('gift-pay-popup').classList.remove('show');
+}
+
 let giftSending = false;
 async function confirmGiftSend(){
   if (!currentGift) return;
   if (giftSending) return;
-  giftSending = true;
   const g = currentGift;
-  closeGiftSend();
+  const price = Number(g.price || 0);
+
+  if (walletBalance < price){
+    alert('余额不足，还差 ¥' + (price - walletBalance).toFixed(2));
+    return;
+  }
+
+  giftSending = true;
+  closeGiftPay();
+
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/wallet`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ owner: OWNER, type: 'expense', amount: price, note: '送礼物：' + g.name })
+    });
+    walletBalance -= price;
+  } catch(e){
+    alert('扣款失败：' + e.message);
+    giftSending = false;
+    return;
+  }
+
+  currentGift = null;
   document.getElementById('pane-gift').style.display = 'none';
   document.getElementById('chat-screen').classList.add('active');
   appendGift('you', g);
@@ -2744,6 +2860,7 @@ async function confirmGiftSend(){
     headerName.textContent = '哒哒';
     headerName.style.fontSize = '';
     loadListTime();
+    loadWallet();
     try {
       const r = await fetch(
         `${SUPABASE_URL}/rest/v1/messages?owner=eq.${OWNER}&order=id.desc&limit=200`,
@@ -2808,6 +2925,14 @@ function appendGift(who, card){
   bubble.appendChild(box);
   row.appendChild(bubble);
   chatBody.appendChild(row);
+
+  if (who === 'you'){
+    const recv = document.createElement('div');
+    recv.className = 'gift-received';
+    recv.textContent = 'malloc 已签收 OvO';
+    chatBody.appendChild(recv);
+  }
+
   scrollBottom();
 }
 
@@ -3477,7 +3602,23 @@ setInterval(loadStatusBar, 60000);
 
 document.getElementById('music-send-ok-btn').addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); if (this.disabled) return; this.disabled = true; this.style.opacity = '0.5'; confirmMusicSend().finally(() => { this.disabled = false; this.style.opacity = ''; }); });
 
-document.getElementById('gift-send-ok-btn').addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); if (this.disabled) return; this.disabled = true; this.style.opacity = '0.5'; confirmGiftSend().finally(() => { this.disabled = false; this.style.opacity = ''; }); });
+document.getElementById('gift-send-ok-btn').addEventListener('click', function(e){
+  e.preventDefault();
+  e.stopPropagation();
+  openGiftPay();
+});
+
+document.getElementById('gift-pay-ok-btn').addEventListener('click', function(e){
+  e.preventDefault();
+  e.stopPropagation();
+  if (this.disabled) return;
+  this.disabled = true;
+  this.style.opacity = '0.5';
+  confirmGiftSend().finally(() => {
+    this.disabled = false;
+    this.style.opacity = '';
+  });
+});
 </script>
 
 </body>
