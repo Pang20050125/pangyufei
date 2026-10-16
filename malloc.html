@@ -2842,7 +2842,7 @@ async function pollNewMessages(){
       }
       else if (c.startsWith('[拍一拍]')) {
         try {
-          const card = JSON.parse(c.slice(4));
+          const card = JSON.parse(c.slice(5));
           appendPatTip(card.text || '拍了拍');
         } catch (e) {
           appendMsg(who, c);
@@ -4059,7 +4059,7 @@ function renderHistoryList(list){
     }
     else if (c.startsWith('[拍一拍]')) {
       try {
-        const card = JSON.parse(c.slice(4));
+        const card = JSON.parse(c.slice(5));
         appendPatTip(card.text || '拍了拍');
       } catch (e) {
         appendMsg(who, c);
