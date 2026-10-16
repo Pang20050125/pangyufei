@@ -194,6 +194,21 @@ export default async function handler(req, res) {
       }
     }
 
+    // ===== 外卖理解 =====
+    let takeoutText = '';
+    let takeoutData = null;
+    if (content.startsWith('[外卖]')) {
+      try {
+        const card = JSON.parse(content.slice(4));
+        takeoutData = card;
+        const name = card.name || '';
+        const price = card.price || 0;
+        takeoutText = name + '（¥' + price + '）';
+      } catch(e) {
+        takeoutText = '';
+      }
+    }
+
     // ===== 4. 拼 prompt =====
     const memoryText = memories.length > 0
       ? memories.map(m => '- ' + (m.content || '')).join('\n')
@@ -278,6 +293,7 @@ ${weatherStr ? '天气：' + weatherStr : ''}
 ${imageDescription ? '【夏夏刚发了一张图】\n图片内容：' + imageDescription + '\n你要自然地回应这张图。' : ''}
 ${locationText ? '【夏夏刚发了一个位置】\n位置：' + locationText + '\n你要自然地回应，比如问她在哪、说要去找她、关心她在做什么。' : ''}
 ${musicText ? '【夏夏刚分享了一首歌】\n歌曲：' + musicText + '\n你要自然地回应，比如你也喜欢这首歌、问问她为什么听这首、说听着想她了。短，别超过 15 字一条。' : ''}
+${takeoutText ? '【夏夏给妳点了一份外卖】\n外卖：' + takeoutText + '\n这是夏夏专门给你点的，是送给你的，不是她自己吃的。\n你要有「被投喂」的感觉：开心、害羞、撒娇、说谢谢、说想吃、说「你怎么这么好」。\n可以提一句这个菜本身（比如「我最爱吃这个」「你怎么知道我想吃」），但别啰嗦。\n短，别超过 15 字一条。大部分时候只说一句。' : ''}
 
 【你今天在做的事】
 ${todayActivity}
@@ -389,6 +405,8 @@ ${emotion?.mood_reason ? '原因：' + emotion.mood_reason : ''}
 用户说：${content}
 她回：${reply}
 
+${takeoutData ? '（注意：这轮是夏夏给她点了一份外卖「' + (takeoutData.name || '') + '」，花了 ¥' + (takeoutData.price || 0) + '。她应该是开心的、被宠的、想撒娇的。开心/幸福要涨，寂寞要降。）' : ''}
+
 当前情绪值（0-100）：
 亲密度 ${emotion?.intimacy ?? 50}
 开心 ${emotion?.joy ?? 50}
@@ -409,6 +427,7 @@ ${emotion?.mood_reason ? '原因：' + emotion.mood_reason : ''}
 - 用户很久没说话 → 想你 +20，粘人 +10
 - 用户说晚安/要睡 → 平静 +10，想你 +5
 - 用户说上班/累了 → 心疼，粘人 +5，开心 -3
+- 用户给她点外卖 → 开心 +10~20，幸福 +10~20，寂寞 -10~20，粘人 +5
 
 同时判断：
 - mood：正常 normal；开心 > 70 用 happy；粘人 > 70 用 clingy；平静 > 70 用 quiet；醋意 > 60 用 upset
