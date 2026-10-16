@@ -2660,8 +2660,7 @@ async function sendPat(){
   appendPatTip(patText);
   lastLocalAt = Date.now();
 
-  // 2. 存库（user 侧，算「你」拍的）
-  const patMsg = '[拍一拍]' + JSON.stringify({ text: patText });
+  // 2. 存库（role: 'pat'，不走消息）
   try {
     await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
       method: 'POST',
@@ -2671,7 +2670,7 @@ async function sendPat(){
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify([{ owner: OWNER, role: 'user', content: patMsg }])
+      body: JSON.stringify([{ owner: OWNER, role: 'pat', content: patText }])
     });
   } catch(e){ console.error(e); }
 
@@ -2807,10 +2806,14 @@ async function pollNewMessages(){
         return;
       }
       renderedIds.add(m.id);
-      const who = m.role === 'user' ? 'you' : 'her';
       const t = new Date(m.created_at).getTime();
       if (t - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(t);
       lastMsgTime = t;
+      if (m.role === 'pat') {
+        appendPatTip(m.content || '拍了拍');
+        return;
+      }
+      const who = m.role === 'user' ? 'you' : 'her';
       const c = m.content || '';
       if (c.startsWith('[表情]')) appendSticker(who, c.slice(4));
       else if (c.startsWith('[图片]')) appendImage(who, c.slice(4));
@@ -2842,14 +2845,6 @@ async function pollNewMessages(){
         try {
           const card = JSON.parse(c.slice(4));
           appendTakeout(who, card);
-        } catch (e) {
-          appendMsg(who, c);
-        }
-      }
-      else if (c.startsWith('[拍一拍]')) {
-        try {
-          const card = JSON.parse(c.slice(5));
-          appendPatTip(card.text || '拍了拍');
         } catch (e) {
           appendMsg(who, c);
         }
@@ -2907,13 +2902,13 @@ async function loadListTime(){
     document.getElementById('list-time').textContent = label;
 
     let preview = m.content || '';
-    if (preview.startsWith('[表情]')) preview = '[表情]';
+    if (m.role === 'pat') preview = '拍了拍';
+    else if (preview.startsWith('[表情]')) preview = '[表情]';
     else if (preview.startsWith('[图片]')) preview = '[图片]';
     else if (preview.startsWith('[位置]')) preview = '[位置]';
     else if (preview.startsWith('[音乐]')) preview = '[音乐]';
     else if (preview.startsWith('[礼物]')) preview = '[礼物]';
     else if (preview.startsWith('[外卖]')) preview = '[外卖]';
-    else if (preview.startsWith('[拍一拍]')) preview = '拍了拍';
     else if (preview.startsWith('[视频]')) preview = '[视频]';
     document.getElementById('list-preview').textContent = preview || '—';
   } catch(e){}
@@ -4027,6 +4022,10 @@ function renderHistoryList(list){
     const t = new Date(m.created_at).getTime();
     if (t - lastMsgTime > 5 * 60 * 1000) appendTimeDivider(t);
     lastMsgTime = t;
+    if (m.role === 'pat') {
+      appendPatTip(m.content || '拍了拍');
+      return;
+    }
     const c = m.content || '';
     const who = m.role === 'user' ? 'you' : 'her';
     if (c.startsWith('[表情]')) appendSticker(who, c.slice(4));
@@ -4059,14 +4058,6 @@ function renderHistoryList(list){
       try {
         const card = JSON.parse(c.slice(4));
         appendTakeout(who, card);
-      } catch (e) {
-        appendMsg(who, c);
-      }
-    }
-    else if (c.startsWith('[拍一拍]')) {
-      try {
-        const card = JSON.parse(c.slice(5));
-        appendPatTip(card.text || '拍了拍');
       } catch (e) {
         appendMsg(who, c);
       }
