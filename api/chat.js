@@ -95,7 +95,7 @@ export default async function handler(req, res) {
     const [soulRes, emoRes, hisRes, memRes, actRes, cfgRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/soul?owner=eq.${owner}&limit=1`, { headers: sbHeaders }),
       fetch(`${SUPABASE_URL}/rest/v1/emotions?owner=eq.${owner}&limit=1`, { headers: sbHeaders }),
-      fetch(`${SUPABASE_URL}/rest/v1/messages?owner=eq.${owner}&order=created_at.desc&limit=12`, { headers: sbHeaders }),
+      fetch(`${SUPABASE_URL}/rest/v1/messages?owner=eq.${owner}&role=neq.pat&order=created_at.desc&limit=12`, { headers: sbHeaders }),
       fetch(`${SUPABASE_URL}/rest/v1/memories?owner=eq.${owner}&order=importance.desc&limit=8`, { headers: sbHeaders }),
       fetch(`${SUPABASE_URL}/rest/v1/daily_activities?day_type=eq.${encodeURIComponent(dayType)}&weather=eq.${encodeURIComponent(weatherType)}&time_slot=eq.${encodeURIComponent(timeSlot)}&select=content`, { headers: sbHeaders }),
       fetch(`${SUPABASE_URL}/rest/v1/config?id=eq.1&select=about_me,likes,dislikes&limit=1`, { headers: sbHeaders })
