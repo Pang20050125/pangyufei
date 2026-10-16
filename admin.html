@@ -73,6 +73,9 @@ header .sub{font-size:13px;color:#86868b;margin-top:4px;letter-spacing:0.3px}
   max-height:88vh;z-index:101;display:none;flex-direction:column;gap:18px;
   box-shadow:0 20px 60px rgba(0,0,0,0.2);
 }
+/* 通用上传弹窗永远在最上层 */
+#upload-mask{z-index:200}
+#upload-popup{z-index:201}
 .popup.show{display:flex}
 .popup h3{font-size:18px;font-weight:600;color:#1d1d1f;letter-spacing:-0.3px}
 .popup .target{font-size:13px;color:#86868b;margin-top:-12px}
@@ -141,6 +144,11 @@ header .sub{font-size:13px;color:#86868b;margin-top:4px;letter-spacing:0.3px}
 #icon-add-btn:hover{background:#f5f5f7;border-color:#0071e3}
 
 #file-input{display:none}
+#icon-file-input{display:none}
+
+/* 通用上传弹窗永远在最上层（修：被礼物/图标弹窗压住的 bug） */
+#upload-mask{z-index:200}
+#upload-popup{z-index:201}
 </style>
 </head>
 <body>
@@ -209,6 +217,16 @@ header .sub{font-size:13px;color:#86868b;margin-top:4px;letter-spacing:0.3px}
   <div id="gift-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-height:60vh;overflow-y:auto;padding:8px"></div>
   <div class="btns">
     <button class="cancel" onclick="closeGiftManager()">关闭</button>
+  </div>
+</div>
+
+<!-- 外卖图管理弹窗 -->
+<div class="mask" id="takeout-mask" onclick="closeTakeoutManager()"></div>
+<div class="popup" id="takeout-popup" style="width:640px">
+  <h3>外卖图管理</h3>
+  <div id="takeout-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-height:60vh;overflow-y:auto;padding:8px"></div>
+  <div class="btns">
+    <button class="cancel" onclick="closeTakeoutManager()">关闭</button>
   </div>
 </div>
 
@@ -487,6 +505,17 @@ async function renderMalloc(){
     </div>
   `;
 
+  // 外卖图管理入口卡片
+  html += `
+    <div class="card" onclick="openTakeoutManager()">
+      <div class="icon-big">🍜</div>
+      <div class="info">
+        <div class="name">外卖图管理</div>
+        <div class="desc">35 个外卖的图片</div>
+      </div>
+    </div>
+  `;
+
   grid.innerHTML = html;
 }
 
@@ -562,6 +591,83 @@ function openGiftReplace(g){
   preview.style.backgroundImage = g.img && g.img.url ? `url('${g.img.url}')` : '';
   preview.classList.toggle('has-image', !!(g.img && g.img.url));
   preview.textContent = (g.img && g.img.url) ? '' : '点击选择图片';
+  $('upload-save').disabled = true;
+  $('upload-mask').classList.add('show');
+  $('upload-popup').classList.add('show');
+}
+
+/* ============ 外卖图管理 ============ */
+let takeoutsData = [];
+
+async function openTakeoutManager(){
+  $('takeout-mask').classList.add('show');
+  $('takeout-popup').classList.add('show');
+  await loadTakeouts();
+}
+
+function closeTakeoutManager(){
+  $('takeout-mask').classList.remove('show');
+  $('takeout-popup').classList.remove('show');
+}
+
+async function loadTakeouts(){
+  const [tkRes, imgRes] = await Promise.all([
+    supabaseClient.from('takeout').select('*').eq('owner','xia').order('category').order('sort_order'),
+    supabaseClient.from('takeout_images').select('*').eq('owner','xia')
+  ]);
+  const takeouts = tkRes.data || [];
+  const imgs = {};
+  (imgRes.data || []).forEach(it => { imgs[it.name] = it; });
+  takeoutsData = takeouts.map(t => ({ ...t, img: imgs[t.name] || null }));
+  renderTakeouts();
+}
+
+function renderTakeouts(){
+  const grid = $('takeout-grid');
+  grid.innerHTML = '';
+  if (takeoutsData.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#86868b;font-size:13px;padding:30px 0">还没有外卖</div>';
+    return;
+  }
+  let lastCat = '';
+  takeoutsData.forEach(t => {
+    if (t.category !== lastCat) {
+      lastCat = t.category;
+      const head = document.createElement('div');
+      head.style.cssText = 'grid-column:1/-1;font-size:14px;font-weight:600;color:#1d1d1f;padding:12px 0 4px';
+      head.textContent = t.category;
+      grid.appendChild(head);
+    }
+    const cell = document.createElement('div');
+    cell.className = 'icon-cell';
+    const box = document.createElement('div');
+    box.className = 'box';
+    if (t.img && t.img.url) {
+      box.style.backgroundImage = `url('${t.img.url}')`;
+    } else {
+      box.textContent = '空';
+    }
+    box.onclick = () => openTakeoutReplace(t);
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = t.name;
+    cell.appendChild(box);
+    cell.appendChild(label);
+    grid.appendChild(cell);
+  });
+}
+
+let replacingTakeout = null;
+function openTakeoutReplace(t){
+  replacingTakeout = t;
+  uploadTargetField = '__takeout__';
+  uploadTargetIsScore = false;
+  pendingImage = null;
+  $('upload-target').textContent = `外卖：${t.name}（${t.category}）`;
+  const preview = $('upload-preview');
+  preview.style.backgroundImage = t.img && t.img.url ? `url('${t.img.url}')` : '';
+  preview.classList.toggle('has-image', !!(t.img && t.img.url));
+  preview.textContent = (t.img && t.img.url) ? '' : '点击选择图片';
   $('upload-save').disabled = true;
   $('upload-mask').classList.add('show');
   $('upload-popup').classList.add('show');
@@ -780,6 +886,8 @@ function closeUpload(){
   uploadTargetField = null;
   pendingImage = null;
   replacingIcon = null;
+  replacingGift = null;
+  replacingTakeout = null;
 }
 
 $('file-input').addEventListener('change', async e => {
@@ -790,7 +898,7 @@ $('file-input').addEventListener('change', async e => {
     fr.onload = ev => r(ev.target.result);
     fr.readAsDataURL(f);
   });
-  const isPng = (uploadTargetField === '__gift__' || uploadTargetField === '__icon__');
+  const isPng = (uploadTargetField === '__gift__' || uploadTargetField === '__icon__' || uploadTargetField === '__takeout__');
   pendingImage = isPng
     ? await compressPng(raw, 1600)
     : await compressImage(raw, 1600, 0.85);
@@ -829,6 +937,14 @@ async function saveUpload(){
       if (error) throw error;
       closeUpload();
       await loadGifts();
+    } else if (uploadTargetField === '__takeout__' && replacingTakeout) {
+      // 外卖图：upsert
+      const { error } = await supabaseClient
+        .from('takeout_images')
+        .upsert({ owner:'xia', name: replacingTakeout.name, url }, { onConflict: 'owner,name' });
+      if (error) throw error;
+      closeUpload();
+      await loadTakeouts();
     } else if (!uploadTargetIsScore) {
       await updateConfig({ [uploadTargetField]: url });
       closeUpload();
