@@ -1066,8 +1066,12 @@ body{
   top:0;left:0;
   width:100%;
   height:100%;
-  z-index:100;
+  z-index:9999;
   overflow-y:auto;
+}
+#pane-malloc-profile .sub-topbar{
+  border-bottom:none;
+  background:#ededed;
 }
 #pane-malloc-profile .mp-top{
   background:#fff;
@@ -1520,10 +1524,7 @@ body{
           <div class="mp-action-icon" id="mp-icon-msg"></div>
           <div>发消息</div>
         </div>
-      </div>
-
-      <div class="mp-group" style="margin-top:0">
-        <div class="mp-action" onclick="openCall()">
+        <div class="mp-action" onclick="openCall()" style="margin-top:0;border-top:0.5px solid #eee">
           <div class="mp-action-icon" id="mp-icon-call"></div>
           <div>音视频通话</div>
         </div>
