@@ -4146,21 +4146,24 @@ function makeAvatar(who){
   // 只有她的头像可点（单击看资料 / 双击拍一拍）
   if (who === 'her') {
     av.style.cursor = 'pointer';
-    let clickTimer = null;
-    av.addEventListener('click', () => {
-      if (clickTimer) return;
-      clickTimer = setTimeout(() => {
-        clickTimer = null;
-        openMallocProfile();
-      }, 250);
-    });
-    av.addEventListener('dblclick', (e) => {
-      e.preventDefault();
-      if (clickTimer) {
-        clearTimeout(clickTimer);
-        clickTimer = null;
+    let lastTap = 0;
+    av.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const now = Date.now();
+      if (now - lastTap < 300) {
+        // 双击
+        lastTap = 0;
+        sendPat();
+      } else {
+        // 第一次点，等 300ms 看有没有第二次
+        lastTap = now;
+        setTimeout(() => {
+          if (lastTap === now) {
+            lastTap = 0;
+            openMallocProfile();
+          }
+        }, 300);
       }
-      sendPat();
     });
   }
   return av;
