@@ -1052,6 +1052,91 @@ body{
   font-size:1.6vh;
   color:#666;
 }
+/* ===== Malloc 个人信息页 ===== */
+#pane-malloc-profile{
+  background:#f5f5f5;
+}
+#pane-malloc-profile .mp-top{
+  background:#fff;
+  padding:3vh var(--pad-x) 3vh;
+  display:flex;
+  align-items:flex-start;
+  gap:4vw;
+}
+#pane-malloc-profile .mp-avatar{
+  width:11vh;height:11vh;border-radius:1.2vh;flex-shrink:0;overflow:hidden;
+  background:#eee;
+}
+#pane-malloc-profile .mp-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+#pane-malloc-profile .mp-info{
+  flex:1;min-width:0;
+  padding-top:1vh;
+}
+#pane-malloc-profile .mp-name{
+  font-size:2.4vh;font-weight:500;color:#111;
+  display:flex;align-items:center;gap:1vw;
+  margin-bottom:1.2vh;
+}
+#pane-malloc-profile .mp-gender{
+  width:2.4vh;height:2.4vh;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+#pane-malloc-profile .mp-gender img{width:100%;height:100%;object-fit:contain;display:block}
+#pane-malloc-profile .mp-line{
+  font-size:1.7vh;color:#888;
+  line-height:1.7;
+  margin-bottom:0.4vh;
+}
+#pane-malloc-profile .mp-line .mp-k{color:#888;margin-right:0.5vw}
+
+#pane-malloc-profile .mp-group{
+  background:#fff;
+  margin-top:1vh;
+}
+#pane-malloc-profile .mp-group-title{
+  padding:1.6vh var(--pad-x) 0.6vh;
+  font-size:1.6vh;color:#888;
+}
+#pane-malloc-profile .mp-item{
+  height:6vh;
+  display:flex;align-items:center;
+  padding:0 var(--pad-x);
+  border-bottom:0.5px solid #eee;
+  cursor:pointer;
+}
+#pane-malloc-profile .mp-item:last-child{border-bottom:none}
+#pane-malloc-profile .mp-item:active{background:#f5f5f5}
+#pane-malloc-profile .mp-item-label{
+  flex:1;font-size:1.8vh;color:#111;
+}
+#pane-malloc-profile .mp-item-value{
+  font-size:1.8vh;color:#999;
+  margin-right:2vw;
+}
+#pane-malloc-profile .mp-item-arrow{
+  width:2vh;height:2vh;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+#pane-malloc-profile .mp-item-arrow img{width:100%;height:100%;object-fit:contain;display:block}
+#pane-malloc-profile .mp-item-arrow svg{width:100%;height:100%;stroke:#c3c3c3;fill:none;stroke-width:2}
+
+#pane-malloc-profile .mp-action{
+  background:#fff;
+  margin-top:1vh;
+  display:flex;align-items:center;justify-content:center;
+  gap:2vw;
+  height:7vh;
+  cursor:pointer;
+  color:#576b95;
+  font-size:1.9vh;
+}
+#pane-malloc-profile .mp-action:active{background:#f5f5f5}
+#pane-malloc-profile .mp-action-icon{
+  width:2.8vh;height:2.8vh;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+#pane-malloc-profile .mp-action-icon img{width:100%;height:100%;object-fit:contain;display:block;filter:brightness(0) saturate(100%) invert(35%) sepia(30%) saturate(1000%) hue-rotate(190deg)}
+
 /* ===== 服务 ===== */
 .service-card{
   margin:16px var(--pad-x);
@@ -1375,6 +1460,63 @@ body{
       </div>
     </div>
 
+    <!-- Malloc 个人信息页 -->
+    <div id="pane-malloc-profile" style="display:none;min-height:100%">
+      <div class="sub-topbar">
+        <div class="sub-back" onclick="closeMallocProfile()">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <div class="sub-more" onclick="notReady('更多')">
+          <svg viewBox="0 0 24 24" style="fill:#111;stroke:none"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+        </div>
+      </div>
+      <div class="mp-top">
+        <div class="mp-avatar" id="mp-avatar"></div>
+        <div class="mp-info">
+          <div class="mp-name">
+            <span id="mp-name">哒哒</span>
+            <span class="mp-gender" id="mp-gender"></span>
+          </div>
+          <div class="mp-line"><span class="mp-k">昵称：</span><span id="mp-nickname">哒哒</span></div>
+          <div class="mp-line"><span class="mp-k">微信号：</span><span id="mp-wechat">malloc_2026</span></div>
+          <div class="mp-line"><span class="mp-k">地区：</span><span id="mp-region">福建 厦门</span></div>
+        </div>
+      </div>
+
+      <div class="mp-group">
+        <div class="mp-group-title">朋友资料</div>
+        <div class="mp-item" style="cursor:default">
+          <div class="mp-item-label">电话</div>
+          <div class="mp-item-value">135-9900-8866</div>
+        </div>
+        <div class="mp-item" style="cursor:default">
+          <div class="mp-item-label">标签</div>
+          <div class="mp-item-value">哒哒</div>
+        </div>
+      </div>
+
+      <div class="mp-group">
+        <div class="mp-item" onclick="notReady('朋友圈')">
+          <div class="mp-item-label">朋友圈</div>
+          <div class="mp-item-arrow" id="mp-arrow-friend"></div>
+        </div>
+      </div>
+
+      <div class="mp-group" style="margin-top:1vh">
+        <div class="mp-action" onclick="closeMallocProfile()">
+          <div class="mp-action-icon" id="mp-icon-msg"></div>
+          <div>发消息</div>
+        </div>
+      </div>
+
+      <div class="mp-group" style="margin-top:0">
+        <div class="mp-action" onclick="openCall()">
+          <div class="mp-action-icon" id="mp-icon-call"></div>
+          <div>音视频通话</div>
+        </div>
+      </div>
+    </div>
+
     <!-- 服务 -->
     <div id="pane-service" style="display:none;min-height:100%;background:#ededed">
       <div class="sub-topbar">
@@ -1442,7 +1584,7 @@ body{
     <div class="back" onclick="closeChat()">
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
     </div>
-    <div class="title" id="header-name">哒哒</div>
+    <div class="title" id="header-name" onclick="openMallocProfile()" style="cursor:pointer">哒哒</div>
     <div class="right">
       <div class="icon" onclick="toggleMenu(event)">
         <svg viewBox="0 0 24 24" style="fill:#111;stroke:none"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
@@ -2074,6 +2216,78 @@ async function saveSoulEdit(){
   } catch(e){ alert('保存失败'); }
 }
 /* ===== 服务 ===== */
+/* ===== Malloc 个人信息页 ===== */
+function openMallocProfile(){
+  document.getElementById('pane-wechat').style.display = 'none';
+  document.getElementById('pane-me').style.display = 'none';
+  document.getElementById('pane-settings').style.display = 'none';
+  document.getElementById('pane-profile').style.display = 'none';
+  document.getElementById('pane-chatbg').style.display = 'none';
+  document.getElementById('pane-music').style.display = 'none';
+  document.getElementById('pane-gift').style.display = 'none';
+  document.getElementById('pane-takeout').style.display = 'none';
+  document.getElementById('pane-service').style.display = 'none';
+  document.getElementById('pane-malloc-profile').style.display = 'block';
+  document.getElementById('tabbar').style.display = 'none';
+  document.getElementById('list-screen').querySelector('.topbar').style.display = 'none';
+  document.getElementById('list-screen').querySelector('.status-bar').style.display = 'none';
+  renderMallocProfile();
+}
+
+function closeMallocProfile(){
+  document.getElementById('pane-malloc-profile').style.display = 'none';
+  document.getElementById('pane-wechat').style.display = 'block';
+  document.getElementById('tabbar').style.display = 'flex';
+  document.getElementById('list-screen').querySelector('.topbar').style.display = 'flex';
+  document.getElementById('list-screen').querySelector('.status-bar').style.display = 'flex';
+}
+
+function renderMallocProfile(){
+  // 头像
+  const avEl = document.getElementById('mp-avatar');
+  if (avEl) {
+    if (herAvatarUrl) {
+      avEl.innerHTML = '<img src="' + herAvatarUrl + '">';
+    } else {
+      avEl.innerHTML = '';
+    }
+  }
+
+  // 名字 + 昵称
+  const nameEl = document.getElementById('mp-name');
+  if (nameEl) nameEl.textContent = (soulData && soulData.name) || 'malloc';
+  const nickEl = document.getElementById('mp-nickname');
+  if (nickEl) nickEl.textContent = (soulData && soulData.nickname) || '哒哒';
+
+  // 性别图标
+  const genderEl = document.getElementById('mp-gender');
+  if (genderEl) {
+    const url = iconMap['女'];
+    genderEl.innerHTML = url ? '<img src="' + url + '">' : '';
+  }
+
+  // 朋友圈箭头
+  const arrowEl = document.getElementById('mp-arrow-friend');
+  if (arrowEl) {
+    const url = iconMap['右箭头'];
+    arrowEl.innerHTML = url ? '<img src="' + url + '">' : '<svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>';
+  }
+
+  // 发消息图标
+  const msgEl = document.getElementById('mp-icon-msg');
+  if (msgEl) {
+    const url = iconMap['发消息'];
+    msgEl.innerHTML = url ? '<img src="' + url + '">' : '';
+  }
+
+  // 通话图标
+  const callEl = document.getElementById('mp-icon-call');
+  if (callEl) {
+    const url = iconMap['通话'];
+    callEl.innerHTML = url ? '<img src="' + url + '">' : '';
+  }
+}
+
 function openService(){
   document.getElementById('pane-me').style.display = 'none';
   document.getElementById('pane-service').style.display = 'block';
@@ -2421,6 +2635,7 @@ function appendLocation(who, card){
 }
 
 function notReady(n){ alert(n + ' 还没做'); }
+function openCall(){ alert('通话 还没做'); }
 function switchTab(name){
   if (name === 'contacts' || name === 'discover'){
     alert((name === 'contacts' ? '通讯录' : '发现') + ' 还没做');
