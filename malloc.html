@@ -2082,9 +2082,11 @@ async function handlePickImage(file) {
       scrollBottom();
     }
     localSentContents.set('her:' + replyText, (localSentContents.get('her:' + replyText) || 0) + 1);
+    lastLocalAt = Date.now();
     if (data.sticker) {
       await new Promise(r => setTimeout(r, 600));
       appendSticker('her', data.sticker);
+      lastLocalAt = Date.now();
     }
   } catch(e) {
     console.error(e);
@@ -2195,9 +2197,11 @@ async function sendLocation(){
       scrollBottom();
     }
     localSentContents.set('her:' + replyText, (localSentContents.get('her:' + replyText) || 0) + 1);
+    lastLocalAt = Date.now();
     if (data.sticker) {
       await new Promise(r => setTimeout(r, 600));
       appendSticker('her', data.sticker);
+      lastLocalAt = Date.now();
     }
   } catch(e) {
     console.error(e);
@@ -2320,7 +2324,7 @@ async function pollNewMessages(){
     list.forEach(m => {
       if (renderedIds.has(m.id)) return;
       const mTime = new Date(m.created_at).getTime();
-      if (mTime <= lastLocalAt + 10000) {
+      if (mTime <= lastLocalAt + 120000) {
         renderedIds.add(m.id);
         return;
       }
@@ -2582,9 +2586,11 @@ async function confirmMusicSend(){
       scrollBottom();
     }
     localSentContents.set('her:' + replyText, (localSentContents.get('her:' + replyText) || 0) + 1);
+    lastLocalAt = Date.now();
     if (data.sticker) {
       await new Promise(r => setTimeout(r, 600));
       appendSticker('her', data.sticker);
+      lastLocalAt = Date.now();
     }
   } catch(e) {
     console.error(e);
@@ -2870,9 +2876,11 @@ async function confirmGiftSend(){
       scrollBottom();
     }
     localSentContents.set('her:' + replyText, (localSentContents.get('her:' + replyText) || 0) + 1);
+    lastLocalAt = Date.now();
     if (data.sticker){
       await new Promise(r => setTimeout(r, 600));
       appendSticker('her', data.sticker);
+      lastLocalAt = Date.now();
     }
   } catch(e){
     console.error(e);
@@ -3385,10 +3393,12 @@ async function send(){
       scrollBottom();
     }
     localSentContents.set('her:' + replyText, (localSentContents.get('her:' + replyText) || 0) + 1);
+    lastLocalAt = Date.now();
 
     if (data.sticker) {
       await new Promise(r => setTimeout(r, 600));
       appendSticker('her', data.sticker);
+      lastLocalAt = Date.now();
       localSentContents.set('her:[表情]' + data.sticker, (localSentContents.get('her:[表情]' + data.sticker) || 0) + 1);
     }
   } catch(e){
