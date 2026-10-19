@@ -1369,6 +1369,10 @@ body{
 #call-screen .call-subtitle .her{
   color: #fff;
 }
+#call-screen .call-subtitle .sys{
+  color: #aaa;
+  font-size: 1.6vh;
+}
 #call-screen .call-talk-btn{
   display: none;
 }
@@ -3286,6 +3290,7 @@ function addSubtitle(who, text) {
 
 async function callChat(text) {
   try {
+    addSubtitle('sys', '思考中...'); // 加个状态
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3293,11 +3298,36 @@ async function callChat(text) {
     });
     const data = await res.json();
     if (data.reply) {
+      // 移除思考中
+      const box = document.getElementById('call-subtitle');
+      if (box.lastChild && box.lastChild.textContent === '思考中...') {
+        box.removeChild(box.lastChild);
+      }
+      
       addSubtitle('her', data.reply);
-      // 下一步做 TTS
+
+      // ===== 播放她的语音 =====
+      try {
+        const ttsRes = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: data.reply })
+        });
+        if (ttsRes.ok) {
+          const audioBlob = await ttsRes.blob();
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          audio.play();
+        } else {
+          console.error('TTS 接口报错', ttsRes.status);
+        }
+      } catch (err) {
+        console.error('TTS 播放失败', err);
+      }
     }
   } catch (e) {
-    console.error(e);
+    console.error('chat 请求失败', e);
+    addSubtitle('sys', '网络出错啦');
   }
 }
 
