@@ -24,15 +24,15 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'missing VOLC_TTS_KEY' });
   }
 
-  // 录音文件识别标准版（HTTP 同步接口，适合短音频）
-  const url = 'https://openspeech.bytedance.com/api/v3/auc/bigmodel/query';
+  // 录音文件识别极速版（HTTP 同步接口，适合短音频）
+  const url = 'https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash';
   const reqId = (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID()
     : 'req-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
 
   const body = {
     user: { uid: 'malloc' },
-    audio: { data: audio },
+    audio: audio,
     request: { model_name: 'bigmodel' }
   };
 
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/json',
         'X-Api-Key': VOLC_TTS_KEY,
-        'X-Api-Resource-Id': 'volc.seedasr.auc',
+        'X-Api-Resource-Id': 'volc.bigasr.auc_turbo',
         'X-Api-Request-Id': reqId,
         'X-Api-Sequence': '-1'
       },
