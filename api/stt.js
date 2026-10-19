@@ -24,15 +24,18 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'missing VOLC_TTS_KEY' });
   }
 
-  // 录音文件识别极速版（HTTP 同步接口，适合短音频）
-  const url = 'https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash';
+  // 使用流式识别的单向流接口
+  const url = 'https://openspeech.bytedance.com/api/v3/sauc/bigmodel_nostream';
   const reqId = (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID()
     : 'req-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
 
   const body = {
     user: { uid: 'malloc' },
-    audio: audio,
+    audio: { 
+      format: 'mp4', // 浏览器 MediaRecorder 默认多数是 mp4 或 webm
+      data: audio 
+    },
     request: { model_name: 'bigmodel' }
   };
 
@@ -42,31 +45,47 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/json',
         'X-Api-Key': VOLC_TTS_KEY,
-        'X-Api-Resource-Id': 'volc.bigasr.auc_turbo',
+        'X-Api-Resource-Id': 'volc.bigasr.sauc.duration', // 流式识别的资源 ID
         'X-Api-Request-Id': reqId,
         'X-Api-Sequence': '-1'
       },
       body: JSON.stringify(body)
     });
 
-    const statusCode = r.headers.get('X-Api-Status-Code');
-    const statusMsg = r.headers.get('X-Api-Message');
-
-    if (!r.ok || (statusCode && statusCode !== '20000000')) {
+    if (!r.ok) {
       const errText = await r.text().catch(() => '');
-      return res.status(500).json({
-        error: 'stt failed',
-        status: r.status,
-        api_status: statusCode,
-        api_msg: statusMsg,
-        detail: errText
-      });
+      return res.status(500).json({ error: 'stt failed', status: r.status, detail: errText });
     }
 
-    const data = await r.json();
-    const text = data?.result?.text || '';
+    // 由于是 HTTP 单向流，返回的可能包含多段 JSON 数据，需要提取
+    const textData = await r.text();
+    let resultText = '';
+    
+    // 尝试逐行解析（火山流式返回通常是换行分隔的 JSON 或 SSE 格式）
+    const lines = textData.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      let jsonStr = trimmed;
+      if (jsonStr.startsWith('data:')) jsonStr = jsonStr.slice(5).trim();
+      if (!jsonStr.startsWith('{')) continue;
+      try {
+        const obj = JSON.parse(jsonStr);
+        if (obj.result && obj.result.text) {
+          resultText += obj.result.text;
+        }
+      } catch (e) {}
+    }
 
-    return res.status(200).json({ text });
+    // 如果逐行解析没拿到，尝试直接解析整体
+    if (!resultText) {
+       try {
+         const obj = JSON.parse(textData);
+         if (obj.result && obj.result.text) resultText = obj.result.text;
+       } catch(e) {}
+    }
+
+    return res.status(200).json({ text: resultText.trim() });
 
   } catch (e) {
     return res.status(500).json({ error: e.message });
