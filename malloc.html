@@ -3229,7 +3229,7 @@ function detectVoice() {
   const volBar = document.getElementById('call-voice-bar');
   if (volBar) volBar.style.width = Math.min(100, avg * 2) + '%';
 
-  const threshold = 10; 
+  const threshold = 20; 
 
   if (avg > threshold) {
     if (!isSpeaking && !isProcessing) {
