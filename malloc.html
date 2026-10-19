@@ -3178,8 +3178,7 @@ let isListening = false;
 let isSpeaking = false;
 let silenceTimer = null;
 let voiceStartTime = 0;
-
-const talkBtn = document.getElementById('call-talk-tip') || document.createElement('div'); // 兜底防止 null 报错
+let isProcessing = false; // 防止识别重叠
 
 async function startVoiceCallListen() {
   if (!isMicOn || isListening) return;
@@ -3203,7 +3202,6 @@ async function startVoiceCallListen() {
       if (e.data.size > 0) audioChunks.push(e.data);
     };
 
-    // 一进通话就直接开始录音，不靠 VAD 触发
     audioChunks = [];
     mediaRecorder.start();
 
@@ -3223,19 +3221,17 @@ function detectVoice() {
   for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
   let avg = sum / dataArray.length;
 
-  // 更新绿条宽度（显示音量）
   const volBar = document.getElementById('call-voice-bar');
   if (volBar) volBar.style.width = Math.min(100, avg * 2) + '%';
 
-  // 阈值降到 10，稍微有点声音就算“在说话”
   const threshold = 10; 
 
   if (avg > threshold) {
-    if (!isSpeaking) {
+    if (!isSpeaking && !isProcessing) {
       isSpeaking = true;
-      // 说话时，显示绿条
       document.getElementById('call-name').style.display = 'none';
       document.getElementById('call-voice-bar-wrap').style.display = 'flex';
+      voiceStartTime = Date.now();
     }
     if (silenceTimer) clearTimeout(silenceTimer);
     silenceTimer = setTimeout(() => {
@@ -3256,25 +3252,30 @@ function detectVoice() {
 async function stopSpeakingAndRecognize() {
   if (!isSpeaking || !mediaRecorder) return;
   isSpeaking = false;
+  isProcessing = true;
+  
   if (silenceTimer) {
     clearTimeout(silenceTimer);
     silenceTimer = null;
   }
 
-  // 停止录音
   if (mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop();
   }
 
   mediaRecorder.onstop = async () => {
-    // 隐藏绿条，显示名字
     document.getElementById('call-voice-bar-wrap').style.display = 'none';
     document.getElementById('call-name').style.display = 'block';
 
     const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
     audioChunks = [];
 
-    if (audioBlob.size < 1000) return;
+    const duration = Date.now() - voiceStartTime;
+    if (audioBlob.size < 1000 || duration < 500) {
+      isProcessing = false;
+      if (isListening && isMicOn) mediaRecorder.start();
+      return;
+    }
 
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
@@ -3287,23 +3288,19 @@ async function stopSpeakingAndRecognize() {
           body: JSON.stringify({ audio: base64data })
         });
         
-        if (!res.ok) {
-          const errText = await res.text();
-          alert('STT 接口报错: ' + errText);
-          return;
-        }
-
-        const data = await res.json();
-        
-        if (data.text && data.text.trim()) {
-          const text = data.text.trim();
-          showText('me', text);
-          callChat(text);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.text && data.text.trim()) {
+            const text = data.text.trim();
+            showText('me', text);
+            callChat(text); // 触发她回复
+          }
         }
       } catch (err) {
-        alert('识别异常: ' + err.message);
+        console.error('识别异常: ' + err.message);
       } finally {
-        // 识别完，重新开始录音，准备听下一句
+        isProcessing = false;
+        // 启动下一轮录音
         if (isListening && isMicOn) {
           audioChunks = [];
           if (mediaRecorder.state === 'inactive') {
@@ -3314,34 +3311,11 @@ async function stopSpeakingAndRecognize() {
     };
   };
 }
-        if (!res.ok) {
-          const errText = await res.text();
-          alert('STT 接口报错: HTTP ' + res.status + '\n' + errText);
-          return;
-        }
-
-        const data = await res.json();
-        
-        if (data.text && data.text.trim()) {
-          const text = data.text.trim();
-          showText('me', text); // 显示你说的绿色字
-          callChat(text);
-        } else {
-          alert('STT 返回为空，原数据：' + JSON.stringify(data));
-        }
-      } catch (err) {
-        alert('识别网络异常: ' + err.message);
-        console.error('识别失败', err);
-      } finally {
-        talkBtn.textContent = ''; 
-      }
-    };
-  };
-}
 
 function stopVoiceCallListen() {
   isListening = false;
   isSpeaking = false;
+  isProcessing = false;
   if (silenceTimer) {
     clearTimeout(silenceTimer);
     silenceTimer = null;
