@@ -1347,6 +1347,48 @@ body{
   letter-spacing:0.5px;
 }
 
+/* 通话界面字幕和按钮 */
+#call-screen .call-subtitle{
+  width: 80%;
+  min-height: 10vh;
+  margin-top: 2vh;
+  text-align: center;
+  color: #fff;
+  font-size: 2vh;
+  line-height: 1.5;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1vh;
+}
+#call-screen .call-subtitle .me{
+  color: #95ec69;
+}
+#call-screen .call-subtitle .her{
+  color: #fff;
+}
+#call-screen .call-talk-btn{
+  width: 70vw;
+  height: 6.5vh;
+  background: rgba(255,255,255,0.15);
+  color: #95ec69;
+  border-radius: 3.25vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2vh;
+  font-weight: 500;
+  letter-spacing: 2px;
+  position: relative;
+  z-index: 2;
+  margin-bottom: 2vh;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
 /* ===== 通话记录卡片 ===== */
 .call-msg-card{
   display: flex;
@@ -1938,6 +1980,8 @@ body{
   <div class="call-avatar" id="call-avatar"></div>
   <div class="call-name" id="call-name">malloc</div>
   <div class="call-status" id="call-status">已接通</div>
+  <div class="call-subtitle" id="call-subtitle"></div>
+  <div class="call-talk-btn" id="call-talk-btn">聆听中...</div>
   <div class="call-actions">
     <div class="call-action-item" onclick="toggleMic()">
       <div class="call-action-circle" id="call-btn-mic"></div>
@@ -2977,6 +3021,11 @@ function startVoiceCall(){
     }, 3000);
   }
 
+  // 自动开启麦克风监听
+  setTimeout(() => {
+    startVoiceCallListen();
+  }, 500);
+
   // 启动计时器
   callSeconds = 0;
   updateCallTimer();
@@ -2995,6 +3044,8 @@ function updateCallTimer(){
 
 async function endCall(){
   document.getElementById('call-screen').classList.remove('show');
+  stopVoiceCallListen(); // 挂断时关闭麦克风
+  
   if (callTimerInterval) {
     clearInterval(callTimerInterval);
     callTimerInterval = null;
@@ -3063,12 +3114,187 @@ function toggleMic(){
   isMicOn = !isMicOn;
   const lbl = document.getElementById('call-lbl-mic');
   if (lbl) lbl.textContent = isMicOn ? '麦克风已开' : '麦克风已关';
+  if (isMicOn) {
+    startVoiceCallListen();
+  } else {
+    stopVoiceCallListen();
+  }
 }
 
 function toggleSpeaker(){
   isSpeakerOn = !isSpeakerOn;
   const lbl = document.getElementById('call-lbl-speaker');
   if (lbl) lbl.textContent = isSpeakerOn ? '扬声器开' : '免提';
+}
+
+/* ===== 常开麦克风 + VAD 自动断句录音 ===== */
+let audioCtx = null;
+let analyser = null;
+let micStream = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let isListening = false;
+let isSpeaking = false;
+let silenceTimer = null;
+let voiceStartTime = 0;
+
+const talkBtn = document.getElementById('call-talk-btn');
+
+async function startVoiceCallListen() {
+  if (!isMicOn || isListening) return;
+  talkBtn.textContent = '正在连接麦克风...';
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    const source = audioCtx.createMediaStreamSource(micStream);
+    source.connect(analyser);
+
+    mediaRecorder = new MediaRecorder(micStream);
+    mediaRecorder.ondataavailable = e => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    isListening = true;
+    talkBtn.textContent = '聆听中...';
+    detectVoice();
+  } catch (err) {
+    alert('无法访问麦克风：' + err.message);
+    talkBtn.textContent = '麦克风不可用';
+  }
+}
+
+function detectVoice() {
+  if (!isListening) return;
+  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(dataArray);
+  
+  let sum = 0;
+  for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+  let avg = sum / dataArray.length;
+
+  const threshold = 25; 
+
+  if (avg > threshold) {
+    if (!isSpeaking) {
+      isSpeaking = true;
+      audioChunks = [];
+      mediaRecorder.start();
+      talkBtn.textContent = '听你说...';
+      voiceStartTime = Date.now();
+    }
+    if (silenceTimer) clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(() => {
+      stopSpeakingAndRecognize();
+    }, 1500);
+  } else {
+    if (isSpeaking) {
+      if (!silenceTimer) {
+        silenceTimer = setTimeout(() => {
+          stopSpeakingAndRecognize();
+        }, 1500);
+      }
+    }
+  }
+  requestAnimationFrame(detectVoice);
+}
+
+async function stopSpeakingAndRecognize() {
+  if (!isSpeaking || !mediaRecorder) return;
+  isSpeaking = false;
+  if (silenceTimer) {
+    clearTimeout(silenceTimer);
+    silenceTimer = null;
+  }
+
+  mediaRecorder.stop();
+  talkBtn.textContent = '识别中...';
+
+  const duration = Date.now() - voiceStartTime;
+  if (duration < 500) {
+    talkBtn.textContent = '聆听中...';
+    return;
+  }
+
+  mediaRecorder.onstop = async () => {
+    const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+    audioChunks = [];
+
+    if (audioBlob.size < 1000) {
+      talkBtn.textContent = '聆听中...';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(audioBlob);
+    reader.onloadend = async () => {
+      const base64data = reader.result.split(',')[1];
+      try {
+        const res = await fetch('/api/stt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audio: base64data, format: 'mp3' })
+        });
+        const data = await res.json();
+        
+        if (data.text && data.text.trim()) {
+          const text = data.text.trim();
+          addSubtitle('me', text);
+          callChat(text);
+        }
+      } catch (err) {
+        console.error('识别失败', err);
+      } finally {
+        talkBtn.textContent = '聆听中...';
+      }
+    };
+  };
+}
+
+function stopVoiceCallListen() {
+  isListening = false;
+  isSpeaking = false;
+  if (silenceTimer) {
+    clearTimeout(silenceTimer);
+    silenceTimer = null;
+  }
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+  if (micStream) {
+    micStream.getTracks().forEach(t => t.stop());
+  }
+  if (audioCtx) {
+    audioCtx.close();
+  }
+}
+
+function addSubtitle(who, text) {
+  const box = document.getElementById('call-subtitle');
+  if (!box) return;
+  const div = document.createElement('div');
+  div.className = who;
+  div.textContent = text;
+  box.appendChild(div);
+  if (box.children.length > 2) box.removeChild(box.firstChild);
+}
+
+async function callChat(text) {
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: text, owner: OWNER })
+    });
+    const data = await res.json();
+    if (data.reply) {
+      addSubtitle('her', data.reply);
+      // 下一步做 TTS
+    }
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 /* ===== 拍一拍 ===== */
