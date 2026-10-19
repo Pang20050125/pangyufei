@@ -3192,7 +3192,15 @@ async function startVoiceCallListen() {
     const source = audioCtx.createMediaStreamSource(micStream);
     source.connect(analyser);
 
-    mediaRecorder = new MediaRecorder(micStream);
+    // 强制指定录音格式为 mp3 或 ogg，提升兼容性
+    let mimeType = 'audio/webm';
+    if (MediaRecorder.isTypeSupported('audio/mp4')) {
+      mimeType = 'audio/mp4';
+    } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+      mimeType = 'audio/webm';
+    }
+    
+    mediaRecorder = new MediaRecorder(micStream, { mimeType });
     mediaRecorder.ondataavailable = e => {
       if (e.data.size > 0) audioChunks.push(e.data);
     };
@@ -3281,7 +3289,7 @@ async function stopSpeakingAndRecognize() {
         const res = await fetch('/api/stt', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ audio: base64data, format: 'mp3' })
+          body: JSON.stringify({ audio: base64data })
         });
         
         if (!res.ok) {
