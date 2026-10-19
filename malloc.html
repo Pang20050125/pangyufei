@@ -1370,23 +1370,18 @@ body{
   color: #fff;
 }
 #call-screen .call-talk-btn{
-  width: 70vw;
-  height: 6.5vh;
-  background: rgba(255,255,255,0.15);
-  color: #95ec69;
-  border-radius: 3.25vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2vh;
-  font-weight: 500;
-  letter-spacing: 2px;
+  display: none;
+}
+
+/* 新增：界面中间的白色状态小字 */
+#call-screen .call-talk-tip{
+  font-size: 1.8vh;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2vh;
+  margin-bottom: 2vh;
   position: relative;
   z-index: 2;
-  margin-bottom: 2vh;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: none;
+  letter-spacing: 1px;
 }
 
 /* ===== 通话记录卡片 ===== */
@@ -1981,7 +1976,7 @@ body{
   <div class="call-name" id="call-name">malloc</div>
   <div class="call-status" id="call-status">已接通</div>
   <div class="call-subtitle" id="call-subtitle"></div>
-  <div class="call-talk-btn" id="call-talk-btn">聆听中...</div>
+  <div class="call-talk-tip" id="call-talk-tip">聆听中...</div>
   <div class="call-actions">
     <div class="call-action-item" onclick="toggleMic()">
       <div class="call-action-circle" id="call-btn-mic"></div>
@@ -3138,7 +3133,7 @@ let isSpeaking = false;
 let silenceTimer = null;
 let voiceStartTime = 0;
 
-const talkBtn = document.getElementById('call-talk-btn');
+const talkBtn = document.getElementById('call-talk-tip');
 
 async function startVoiceCallListen() {
   if (!isMicOn || isListening) return;
@@ -3157,7 +3152,7 @@ async function startVoiceCallListen() {
     };
 
     isListening = true;
-    talkBtn.textContent = '聆听中...';
+    talkBtn.textContent = ''; // 连上后隐藏文字
     detectVoice();
   } catch (err) {
     alert('无法访问麦克风：' + err.message);
@@ -3181,7 +3176,7 @@ function detectVoice() {
       isSpeaking = true;
       audioChunks = [];
       mediaRecorder.start();
-      talkBtn.textContent = '听你说...';
+      talkBtn.textContent = ''; // 说话时不显示
       voiceStartTime = Date.now();
     }
     if (silenceTimer) clearTimeout(silenceTimer);
@@ -3213,7 +3208,7 @@ async function stopSpeakingAndRecognize() {
 
   const duration = Date.now() - voiceStartTime;
   if (duration < 500) {
-    talkBtn.textContent = '聆听中...';
+    talkBtn.textContent = ''; 
     return;
   }
 
@@ -3222,7 +3217,7 @@ async function stopSpeakingAndRecognize() {
     audioChunks = [];
 
     if (audioBlob.size < 1000) {
-      talkBtn.textContent = '聆听中...';
+      talkBtn.textContent = ''; 
       return;
     }
 
@@ -3246,7 +3241,7 @@ async function stopSpeakingAndRecognize() {
       } catch (err) {
         console.error('识别失败', err);
       } finally {
-        talkBtn.textContent = '聆听中...';
+        talkBtn.textContent = ''; 
       }
     };
   };
