@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/json',
         'X-Api-Key': VOLC_TTS_KEY,
-        'X-Api-Resource-Id': 'volc.bigasr.auc', // 录音文件识别 2.0 标准版
+        'X-Api-Resource-Id': 'volc.bigasr.auc', // 录音文件识别 1.0 标准版
         'X-Api-Request-Id': reqId,
         'X-Api-Sequence': '-1'
       },
