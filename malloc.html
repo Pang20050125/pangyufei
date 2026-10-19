@@ -2014,11 +2014,11 @@ body{
     <div class="call-name" id="call-name">malloc</div>
     <div class="call-text-sub" id="call-text-sub" style="display:none;"></div>
     <div class="call-status" id="call-status" style="display:none;">已接通</div>
-    
-    <!-- 你的语音波浪条 (默认隐藏) -->
-    <div class="call-voice-bar-wrap" id="call-voice-bar-wrap" style="display:none;">
-      <div class="call-voice-bar" id="call-voice-bar"></div>
-    </div>
+  </div>
+  
+  <!-- 你的语音波浪条 (移到了底部圆圈上面) -->
+  <div class="call-voice-bar-wrap" id="call-voice-bar-wrap" style="display:none;">
+    <div class="call-voice-bar" id="call-voice-bar"></div>
   </div>
   
   <!-- 隐藏掉原来的字幕区 -->
@@ -3183,7 +3183,6 @@ const talkBtn = document.getElementById('call-talk-tip') || document.createEleme
 
 async function startVoiceCallListen() {
   if (!isMicOn || isListening) return;
-  talkBtn.textContent = '正在连接麦克风...';
   try {
     micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -3192,7 +3191,6 @@ async function startVoiceCallListen() {
     const source = audioCtx.createMediaStreamSource(micStream);
     source.connect(analyser);
 
-    // 强制指定录音格式为 mp3 或 ogg，提升兼容性
     let mimeType = 'audio/webm';
     if (MediaRecorder.isTypeSupported('audio/mp4')) {
       mimeType = 'audio/mp4';
@@ -3205,12 +3203,14 @@ async function startVoiceCallListen() {
       if (e.data.size > 0) audioChunks.push(e.data);
     };
 
+    // 一进通话就直接开始录音，不靠 VAD 触发
+    audioChunks = [];
+    mediaRecorder.start();
+
     isListening = true;
-    talkBtn.textContent = ''; // 连上后隐藏文字
     detectVoice();
   } catch (err) {
     alert('无法访问麦克风：' + err.message);
-    talkBtn.textContent = '麦克风不可用';
   }
 }
 
@@ -3223,21 +3223,19 @@ function detectVoice() {
   for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
   let avg = sum / dataArray.length;
 
-  // 更新绿条宽度
+  // 更新绿条宽度（显示音量）
   const volBar = document.getElementById('call-voice-bar');
   if (volBar) volBar.style.width = Math.min(100, avg * 2) + '%';
 
-  const threshold = 25; 
+  // 阈值降到 10，稍微有点声音就算“在说话”
+  const threshold = 10; 
 
   if (avg > threshold) {
     if (!isSpeaking) {
       isSpeaking = true;
-      audioChunks = [];
-      mediaRecorder.start();
-      // 界面变成：隐藏名字，显示绿条
+      // 说话时，显示绿条
       document.getElementById('call-name').style.display = 'none';
       document.getElementById('call-voice-bar-wrap').style.display = 'flex';
-      voiceStartTime = Date.now();
     }
     if (silenceTimer) clearTimeout(silenceTimer);
     silenceTimer = setTimeout(() => {
@@ -3263,23 +3261,20 @@ async function stopSpeakingAndRecognize() {
     silenceTimer = null;
   }
 
-  mediaRecorder.stop();
-  talkBtn.textContent = '识别中...';
-
-  const duration = Date.now() - voiceStartTime;
-  if (duration < 500) {
-    talkBtn.textContent = ''; 
-    return;
+  // 停止录音
+  if (mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
   }
 
   mediaRecorder.onstop = async () => {
+    // 隐藏绿条，显示名字
+    document.getElementById('call-voice-bar-wrap').style.display = 'none';
+    document.getElementById('call-name').style.display = 'block';
+
     const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
     audioChunks = [];
 
-    if (audioBlob.size < 1000) {
-      talkBtn.textContent = ''; 
-      return;
-    }
+    if (audioBlob.size < 1000) return;
 
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
@@ -3292,6 +3287,33 @@ async function stopSpeakingAndRecognize() {
           body: JSON.stringify({ audio: base64data })
         });
         
+        if (!res.ok) {
+          const errText = await res.text();
+          alert('STT 接口报错: ' + errText);
+          return;
+        }
+
+        const data = await res.json();
+        
+        if (data.text && data.text.trim()) {
+          const text = data.text.trim();
+          showText('me', text);
+          callChat(text);
+        }
+      } catch (err) {
+        alert('识别异常: ' + err.message);
+      } finally {
+        // 识别完，重新开始录音，准备听下一句
+        if (isListening && isMicOn) {
+          audioChunks = [];
+          if (mediaRecorder.state === 'inactive') {
+            mediaRecorder.start();
+          }
+        }
+      }
+    };
+  };
+}
         if (!res.ok) {
           const errText = await res.text();
           alert('STT 接口报错: HTTP ' + res.status + '\n' + errText);
