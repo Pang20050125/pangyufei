@@ -24,68 +24,79 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'missing VOLC_TTS_KEY' });
   }
 
-  // 使用流式识别的单向流接口
-  const url = 'https://openspeech.bytedance.com/api/v3/sauc/bigmodel_nostream';
   const reqId = (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID()
     : 'req-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
 
-  const body = {
-    user: { uid: 'malloc' },
-    audio: { 
-      format: 'mp4', // 浏览器 MediaRecorder 默认多数是 mp4 或 webm
-      data: audio 
-    },
-    request: { model_name: 'bigmodel' }
-  };
-
+  // ===== 1. 提交任务（Submit） =====
+  const submitUrl = 'https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit';
+  
   try {
-    const r = await fetch(url, {
+    const submitRes = await fetch(submitUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Api-Key': VOLC_TTS_KEY,
-        'X-Api-Resource-Id': 'volc.bigasr.sauc.duration', // 流式识别的资源 ID
+        'X-Api-Resource-Id': 'volc.bigasr.auc', // 录音文件识别 2.0 标准版
         'X-Api-Request-Id': reqId,
         'X-Api-Sequence': '-1'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify({
+        user: { uid: 'malloc' },
+        audio: { data: audio },
+        request: { model_name: 'bigmodel' }
+      })
     });
 
-    if (!r.ok) {
-      const errText = await r.text().catch(() => '');
-      return res.status(500).json({ error: 'stt failed', status: r.status, detail: errText });
+    if (!submitRes.ok) {
+      const errText = await submitRes.text();
+      return res.status(500).json({ error: 'submit failed', status: submitRes.status, detail: errText });
     }
 
-    // 由于是 HTTP 单向流，返回的可能包含多段 JSON 数据，需要提取
-    const textData = await r.text();
-    let resultText = '';
+    // ===== 2. 轮询查询结果（Query） =====
+    const queryUrl = `https://openspeech.bytedance.com/api/v3/auc/bigmodel/query?task_id=${reqId}`;
+    let textResult = '';
     
-    // 尝试逐行解析（火山流式返回通常是换行分隔的 JSON 或 SSE 格式）
-    const lines = textData.split('\n');
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      let jsonStr = trimmed;
-      if (jsonStr.startsWith('data:')) jsonStr = jsonStr.slice(5).trim();
-      if (!jsonStr.startsWith('{')) continue;
-      try {
-        const obj = JSON.parse(jsonStr);
-        if (obj.result && obj.result.text) {
-          resultText += obj.result.text;
-        }
-      } catch (e) {}
+    // 最多查 10 次，每次等 1.5 秒
+    for (let i = 0; i < 10; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      
+      const queryRes = await fetch(queryUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': VOLC_TTS_KEY,
+          'X-Api-Resource-Id': 'volc.bigasr.auc',
+          'X-Api-Request-Id': reqId
+        },
+        body: JSON.stringify({})
+      });
+
+      if (!queryRes.ok) {
+        const errText = await queryRes.text();
+        return res.status(500).json({ error: 'query failed', status: queryRes.status, detail: errText });
+      }
+
+      const data = await queryRes.json();
+      
+      // 如果状态是完成，提取文字
+      if (data.result && data.result.text) {
+        textResult = data.result.text;
+        break;
+      }
+      
+      // 状态码如果是 20000001 (处理中)，继续等
+      const statusCode = data.header?.code;
+      if (statusCode && statusCode !== '20000000' && statusCode !== '20000001') {
+        return res.status(500).json({ error: 'query error', detail: data });
+      }
     }
 
-    // 如果逐行解析没拿到，尝试直接解析整体
-    if (!resultText) {
-       try {
-         const obj = JSON.parse(textData);
-         if (obj.result && obj.result.text) resultText = obj.result.text;
-       } catch(e) {}
+    if (!textResult) {
+      return res.status(500).json({ error: 'timeout or no text' });
     }
 
-    return res.status(200).json({ text: resultText.trim() });
+    return res.status(200).json({ text: textResult });
 
   } catch (e) {
     return res.status(500).json({ error: e.message });
