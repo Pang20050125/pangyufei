@@ -3293,7 +3293,7 @@ async function stopSpeakingAndRecognize() {
           body: JSON.stringify({ audio: base64data })
         });
         
-        if (res.ok) {
+         if (res.ok) {
           const data = await res.json();
           if (data.text && data.text.trim()) {
             const text = data.text.trim();
@@ -3303,7 +3303,8 @@ async function stopSpeakingAndRecognize() {
             alert('识别为空，返回：' + JSON.stringify(data));
           }
         } else {
-          alert('STT 接口报错 HTTP: ' + res.status);
+          const errText = await res.text();
+          alert('STT 接口报错 HTTP: ' + res.status + '\n详情：' + errText);
         }
       } catch (err) {
         console.error('识别异常: ' + err.message);
