@@ -8,14 +8,14 @@ export const config = {
   }
 };
 
-// 阿里云 RPC 签名算法
+// 阿里云 RPC 签名算法（完整版，处理了特殊字符）
 function getSignature(params, secret) {
   const sortedKeys = Object.keys(params).sort();
   const canonicalizedQueryString = sortedKeys
     .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
     .join('&');
   
-  const stringToSign = 'POST&%2F&' + encodeURIComponent(canonicalizedQueryString);
+  const stringToSign = 'GET&%2F&' + encodeURIComponent(canonicalizedQueryString);
   return crypto.createHmac('sha1', secret + '&').update(stringToSign).digest('base64');
 }
 
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. 调阿里云获取 Token
+    // 1. 获取 Token (必须用 GET 请求)
     const tokenParams = {
       AccessKeyId: AK_ID,
       Action: 'CreateToken',
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
     tokenParams.Signature = getSignature(tokenParams, AK_SECRET);
 
     const tokenQuery = Object.keys(tokenParams).map(k => `${k}=${encodeURIComponent(tokenParams[k])}`).join('&');
-    const tokenRes = await fetch(`https://nls-meta.cn-shanghai.aliyuncs.com/?${tokenQuery}`, { method: 'POST' });
+    const tokenRes = await fetch(`https://nls-meta.cn-shanghai.aliyuncs.com/?${tokenQuery}`, { method: 'GET' });
     const tokenData = await tokenRes.json();
     
     if (!tokenData.Token || !tokenData.Token.Id) {
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     
     const token = tokenData.Token.Id;
 
-    // 2. 调阿里云一句话识别
+    // 2. 调阿里云一句话识别 (直接传二进制流)
     const sttUrl = `https://nls-gateway-cn-shanghai.aliyuncs.com/stream/v1/asr?appkey=${APPKEY}&format=mp3`;
     
     const audioBuffer = Buffer.from(audio, 'base64');
