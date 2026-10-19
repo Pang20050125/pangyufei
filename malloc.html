@@ -3209,8 +3209,8 @@ async function startVoiceCallListen() {
       if (e.data.size > 0) audioChunks.push(e.data);
     };
 
+    // 先不录音，等 detectVoice 检测到声音再 start
     audioChunks = [];
-    mediaRecorder.start();
 
     isListening = true;
     detectVoice();
@@ -3239,6 +3239,12 @@ function detectVoice() {
       document.getElementById('call-name').style.display = 'none';
       document.getElementById('call-voice-bar-wrap').style.display = 'flex';
       voiceStartTime = Date.now();
+      
+      // 只有检测到有人说话，才开始录制！
+      audioChunks = [];
+      if (mediaRecorder.state === 'inactive') {
+        mediaRecorder.start();
+      }
     }
     if (silenceTimer) clearTimeout(silenceTimer);
     silenceTimer = setTimeout(() => {
@@ -3268,6 +3274,10 @@ async function stopSpeakingAndRecognize() {
 
   if (mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop();
+  } else {
+    // 如果录音没启动，或者被提前停止了，直接跳过
+    isProcessing = false;
+    return;
   }
 
   mediaRecorder.onstop = async () => {
@@ -3278,9 +3288,10 @@ async function stopSpeakingAndRecognize() {
     audioChunks = [];
 
     const duration = Date.now() - voiceStartTime;
-    if (audioBlob.size < 1000 || duration < 500) {
+    // 提高到 3000 字节 + 500ms，防止空音频发过去
+    if (audioBlob.size < 3000 || duration < 500) {
       isProcessing = false;
-      if (isListening && isMicOn) mediaRecorder.start();
+      // 不重新 start，等下一句话触发
       return;
     }
 
