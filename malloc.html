@@ -1154,6 +1154,57 @@ body{
 }
 #pane-malloc-profile .mp-action-icon img{width:100%;height:100%;object-fit:contain;display:block;filter:brightness(0) saturate(100%) invert(35%) sepia(30%) saturate(1000%) hue-rotate(190deg)}
 
+/* ===== 通话选择面板 ===== */
+#call-action-mask{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.4);
+  z-index:10000;
+  display:none;
+}
+#call-action-mask.show{display:block}
+#call-action-panel{
+  position:fixed;left:0;right:0;bottom:0;
+  background:#f7f7f7;
+  z-index:10001;
+  transform:translateY(100%);
+  transition:transform 0.25s ease;
+  padding-bottom:env(safe-area-inset-bottom);
+  border-radius:1.5vh 1.5vh 0 0;
+  overflow:hidden;
+}
+#call-action-panel.show{transform:translateY(0)}
+#call-action-panel .ca-btn{
+  background:#fff;
+  height:7vh;
+  display:flex;align-items:center;justify-content:center;
+  gap:2vw;
+  font-size:2vh;color:#111;
+  cursor:pointer;
+  border-bottom:0.5px solid #eee;
+}
+#call-action-panel .ca-btn:last-child{border-bottom:none}
+#call-action-panel .ca-icon{
+  width:3vh;height:3vh;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+#call-action-panel .ca-icon img{
+  width:100%;height:100%;object-fit:contain;display:block;
+  filter:brightness(0) saturate(100%) invert(35%) sepia(30%) saturate(1000%) hue-rotate(190deg);
+}
+#call-action-panel .ca-gap{
+  height:1vh;
+  background:#f7f7f7;
+}
+#call-action-panel .ca-cancel{
+  background:#fff;
+  height:7vh;
+  display:flex;align-items:center;justify-content:center;
+  font-size:2vh;color:#111;
+  cursor:pointer;
+  border-radius:0;
+}
+#call-action-panel .ca-cancel:active{background:#f5f5f5}
+
 /* ===== 服务 ===== */
 .service-card{
   margin:16px var(--pad-x);
@@ -1698,6 +1749,21 @@ body{
       <button class="pay-btn ok" id="takeout-pay-ok-btn">确认付款</button>
     </div>
   </div>
+</div>
+
+<!-- 通话选择面板 -->
+<div id="call-action-mask" onclick="closeCallAction()"></div>
+<div id="call-action-panel">
+  <div class="ca-btn" onclick="pickCallAction('视频通话')">
+    <div class="ca-icon" id="ca-icon-video"></div>
+    <div>视频通话</div>
+  </div>
+  <div class="ca-btn" onclick="pickCallAction('语音通话')">
+    <div class="ca-icon" id="ca-icon-voice"></div>
+    <div>语音通话</div>
+  </div>
+  <div class="ca-gap"></div>
+  <div class="ca-cancel" onclick="closeCallAction()">取消</div>
 </div>
 
 <!-- Malloc 个人信息页（body 顶层，绝对置顶） -->
@@ -2649,7 +2715,33 @@ function appendLocation(who, card){
 }
 
 function notReady(n){ alert(n + ' 还没做'); }
-function openCall(){ alert('通话 还没做'); }
+
+/* ===== 通话选择面板 ===== */
+function openCall(){
+  document.getElementById('call-action-mask').classList.add('show');
+  document.getElementById('call-action-panel').classList.add('show');
+  renderCallActionIcons();
+}
+function closeCallAction(){
+  document.getElementById('call-action-mask').classList.remove('show');
+  document.getElementById('call-action-panel').classList.remove('show');
+}
+function renderCallActionIcons(){
+  const vEl = document.getElementById('ca-icon-video');
+  if (vEl) {
+    const url = iconMap['视频通话'];
+    vEl.innerHTML = url ? '<img src="' + url + '">' : '';
+  }
+  const aEl = document.getElementById('ca-icon-voice');
+  if (aEl) {
+    const url = iconMap['语音通话'];
+    aEl.innerHTML = url ? '<img src="' + url + '">' : '';
+  }
+}
+function pickCallAction(type){
+  closeCallAction();
+  alert(type + ' 还没做');
+}
 
 /* ===== 拍一拍 ===== */
 async function sendPat(){
