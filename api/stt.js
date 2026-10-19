@@ -1,5 +1,3 @@
-import crypto from 'crypto';
-
 export const config = {
   api: {
     bodyParser: {
@@ -7,17 +5,6 @@ export const config = {
     }
   }
 };
-
-// 阿里云 RPC 签名算法（完整版，处理了特殊字符）
-function getSignature(params, secret) {
-  const sortedKeys = Object.keys(params).sort();
-  const canonicalizedQueryString = sortedKeys
-    .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
-    .join('&');
-  
-  const stringToSign = 'GET&%2F&' + encodeURIComponent(canonicalizedQueryString);
-  return crypto.createHmac('sha1', secret + '&').update(stringToSign).digest('base64');
-}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -33,39 +20,14 @@ export default async function handler(req, res) {
   }
 
   const APPKEY = process.env.ALI_STT_APPKEY;
-  const AK_ID = process.env.ALI_STT_AK_ID;
-  const AK_SECRET = process.env.ALI_STT_AK_SECRET;
+  const TOKEN = process.env.ALI_STT_TOKEN;
 
-  if (!APPKEY || !AK_ID || !AK_SECRET) {
-    return res.status(500).json({ error: 'missing ali cloud credentials' });
+  if (!APPKEY || !TOKEN) {
+    return res.status(500).json({ error: 'missing ali cloud appkey or token' });
   }
 
   try {
-    // 1. 获取 Token (必须用 GET 请求)
-    const tokenParams = {
-      AccessKeyId: AK_ID,
-      Action: 'CreateToken',
-      Format: 'JSON',
-      RegionId: 'cn-shanghai',
-      SignatureMethod: 'HMAC-SHA1',
-      SignatureNonce: Date.now().toString(),
-      SignatureVersion: '1.0',
-      Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-      Version: '2019-02-28'
-    };
-    tokenParams.Signature = getSignature(tokenParams, AK_SECRET);
-
-    const tokenQuery = Object.keys(tokenParams).map(k => `${k}=${encodeURIComponent(tokenParams[k])}`).join('&');
-    const tokenRes = await fetch(`https://nls-meta.cn-shanghai.aliyuncs.com/?${tokenQuery}`, { method: 'GET' });
-    const tokenData = await tokenRes.json();
-    
-    if (!tokenData.Token || !tokenData.Token.Id) {
-      return res.status(500).json({ error: 'get ali token failed', detail: tokenData });
-    }
-    
-    const token = tokenData.Token.Id;
-
-    // 2. 调阿里云一句话识别 (直接传二进制流)
+    // 直接用临时 Token 调一句话识别
     const sttUrl = `https://nls-gateway-cn-shanghai.aliyuncs.com/stream/v1/asr?appkey=${APPKEY}&format=mp3`;
     
     const audioBuffer = Buffer.from(audio, 'base64');
@@ -73,7 +35,7 @@ export default async function handler(req, res) {
     const sttRes = await fetch(sttUrl, {
       method: 'POST',
       headers: {
-        'X-NLS-Token': token,
+        'X-NLS-Token': TOKEN,
         'Content-Type': 'application/octet-stream'
       },
       body: audioBuffer
