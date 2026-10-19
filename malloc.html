@@ -1378,14 +1378,43 @@ body{
 }
 
 /* 新增：界面中间的白色状态小字 */
-#call-screen .call-talk-tip{
-  font-size: 1.8vh;
-  color: rgba(255, 255, 255, 0.7);
-  margin-top: 2vh;
-  margin-bottom: 2vh;
+#call-screen .call-dynamic-area{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 1.8vh;
   position: relative;
   z-index: 2;
-  letter-spacing: 1px;
+  min-height: 10vh;
+}
+#call-screen .call-text-sub{
+  font-size: 2.2vh;
+  color: #95ec69; /* 你说的文字是绿色 */
+  margin-top: 1vh;
+  text-align: center;
+  padding: 0 10vw;
+  line-height: 1.4;
+}
+#call-screen .call-text-sub.her{
+  color: #fff; /* 她说的文字是白色 */
+}
+#call-screen .call-voice-bar-wrap{
+  width: 50vw;
+  height: 4vh;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2vh;
+  margin-top: 1.5vh;
+  display: flex;
+  align-items: center;
+  padding: 0 2vw;
+  overflow: hidden;
+}
+#call-screen .call-voice-bar{
+  width: 0%;
+  height: 1vh;
+  background: #07C160;
+  border-radius: 0.5vh;
+  transition: width 0.1s;
 }
 
 /* ===== 通话记录卡片 ===== */
@@ -1977,13 +2006,21 @@ body{
     <div class="call-icon-btn" id="call-icon-right"></div>
   </div>
   <div class="call-avatar" id="call-avatar"></div>
-  <div class="call-name" id="call-name">malloc</div>
-  <div class="call-status" id="call-status">已接通</div>
-  <div class="call-subtitle" id="call-subtitle"></div>
-  <div class="call-talk-tip" id="call-talk-tip">聆听中...</div>
-  <div style="width:80%;height:1vh;background:#333;margin:2vh 0;border-radius:0.5vh;z-index:2;position:relative;overflow:hidden;">
-    <div id="call-volume-bar" style="width:0%;height:100%;background:#07C160;transition:width 0.1s;"></div>
+  
+  <!-- 中间动态显示区 -->
+  <div class="call-dynamic-area">
+    <div class="call-name" id="call-name">malloc</div>
+    <div class="call-text-sub" id="call-text-sub" style="display:none;"></div>
+    <div class="call-status" id="call-status" style="display:none;">已接通</div>
+    
+    <!-- 你的语音波浪条 (默认隐藏) -->
+    <div class="call-voice-bar-wrap" id="call-voice-bar-wrap" style="display:none;">
+      <div class="call-voice-bar" id="call-voice-bar"></div>
+    </div>
   </div>
+  
+  <!-- 隐藏掉原来的字幕区 -->
+  <div class="call-subtitle" id="call-subtitle" style="display:none;"></div>
   <div class="call-actions">
     <div class="call-action-item" onclick="toggleMic()">
       <div class="call-action-circle" id="call-btn-mic"></div>
@@ -3176,11 +3213,9 @@ function detectVoice() {
   for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
   let avg = sum / dataArray.length;
 
-  // --- 测试音量条 ---
-  const volBar = document.getElementById('call-volume-bar');
+  // 更新绿条宽度
+  const volBar = document.getElementById('call-voice-bar');
   if (volBar) volBar.style.width = Math.min(100, avg * 2) + '%';
-  console.log('当前音量:', avg);
-  // ------------------
 
   const threshold = 25; 
 
@@ -3189,7 +3224,9 @@ function detectVoice() {
       isSpeaking = true;
       audioChunks = [];
       mediaRecorder.start();
-      talkBtn.textContent = ''; // 说话时不显示
+      // 界面变成：隐藏名字，显示绿条
+      document.getElementById('call-name').style.display = 'none';
+      document.getElementById('call-voice-bar-wrap').style.display = 'flex';
       voiceStartTime = Date.now();
     }
     if (silenceTimer) clearTimeout(silenceTimer);
@@ -3248,7 +3285,7 @@ async function stopSpeakingAndRecognize() {
         
         if (data.text && data.text.trim()) {
           const text = data.text.trim();
-          addSubtitle('me', text);
+          showText('me', text); // 显示你说的绿色字
           callChat(text);
         }
       } catch (err) {
@@ -3278,14 +3315,27 @@ function stopVoiceCallListen() {
   }
 }
 
-function addSubtitle(who, text) {
-  const box = document.getElementById('call-subtitle');
-  if (!box) return;
-  const div = document.createElement('div');
-  div.className = who;
-  div.textContent = text;
-  box.appendChild(div);
-  if (box.children.length > 2) box.removeChild(box.firstChild);
+let subtitleTimer = null;
+function showText(who, text) {
+  const nameEl = document.getElementById('call-name');
+  const textEl = document.getElementById('call-text-sub');
+  const barWrap = document.getElementById('call-voice-bar-wrap');
+
+  // 隐藏绿条和名字
+  barWrap.style.display = 'none';
+  nameEl.style.display = 'none';
+  
+  // 显示文字
+  textEl.textContent = text;
+  textEl.className = who === 'her' ? 'her' : ''; // her 是白色，me 是绿色
+  textEl.style.display = 'block';
+
+  // 3秒后恢复显示名字
+  if (subtitleTimer) clearTimeout(subtitleTimer);
+  subtitleTimer = setTimeout(() => {
+    textEl.style.display = 'none';
+    nameEl.style.display = 'block';
+  }, 3000);
 }
 
 async function callChat(text) {
@@ -3298,13 +3348,7 @@ async function callChat(text) {
     });
     const data = await res.json();
     if (data.reply) {
-      // 移除思考中
-      const box = document.getElementById('call-subtitle');
-      if (box.lastChild && box.lastChild.textContent === '思考中...') {
-        box.removeChild(box.lastChild);
-      }
-      
-      addSubtitle('her', data.reply);
+      showText('her', data.reply);
 
       // ===== 播放她的语音 =====
       try {
