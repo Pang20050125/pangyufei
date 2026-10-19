@@ -3190,21 +3190,16 @@ async function startVoiceCallListen() {
     const source = audioCtx.createMediaStreamSource(micStream);
     source.connect(analyser);
 
-    // 使用手机原生支持最好的格式
-    let mimeType = 'audio/webm';
-    if (MediaRecorder.isTypeSupported('audio/mp4')) {
-      mimeType = 'audio/mp4'; // 苹果手机通常支持这个
-    } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-      mimeType = 'audio/webm'; // 安卓通常支持这个
-    } else {
-      mimeType = ''; // 都不支持就让浏览器自己决定
+    // 强力要求使用 wav 或 ogg
+    let mimeType = 'audio/wav';
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = 'audio/ogg; codecs=opus';
+    }
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = 'audio/webm';
     }
     
-    if (mimeType) {
-      mediaRecorder = new MediaRecorder(micStream, { mimeType });
-    } else {
-      mediaRecorder = new MediaRecorder(micStream);
-    }
+    mediaRecorder = new MediaRecorder(micStream, { mimeType });
     mediaRecorder.ondataavailable = e => {
       if (e.data.size > 0) audioChunks.push(e.data);
     };
@@ -3300,10 +3295,10 @@ async function stopSpeakingAndRecognize() {
     reader.onloadend = async () => {
       const base64data = reader.result.split(',')[1];
       try {
-        // 获取实际录音的格式（webm/mp4/mp3 等）
-        let format = 'mp3';
+        // 把格式告诉后端
+        let format = 'wav';
+        if (mediaRecorder.mimeType.includes('ogg')) format = 'opus';
         if (mediaRecorder.mimeType.includes('webm')) format = 'webm';
-        if (mediaRecorder.mimeType.includes('mp4')) format = 'mp4';
         
         const res = await fetch('/api/stt', {
           method: 'POST',
