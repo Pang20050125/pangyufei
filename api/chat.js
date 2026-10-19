@@ -315,6 +315,8 @@ ${memoryText}
 粘人 ${emotion?.clingy ?? 40}
 平静 ${emotion?.calm ?? 60}
 醋意 ${emotion?.jealousy ?? 0}
+幸福值 ${emotion?.happiness ?? 50}
+寂寞值 ${emotion?.loneliness ?? 20}
 
 当前心情：${emotion?.mood ?? 'normal'}
 ${emotion?.mood_reason ? '原因：' + emotion.mood_reason : ''}
@@ -418,6 +420,8 @@ ${takeoutData ? '（注意：这轮是夏夏给她点了一份外卖「' + (take
 粘人 ${emotion?.clingy ?? 40}
 平静 ${emotion?.calm ?? 60}
 醋意 ${emotion?.jealousy ?? 0}
+幸福值 ${emotion?.happiness ?? 50}
+寂寞值 ${emotion?.loneliness ?? 20}
 
 请判断这轮对话后，每个值应该变成多少（0-100 整数）。考虑：
 - 用户说"我去忙了/要走了"→ 想你 +10~20，粘人 +5~15，开心 -5
@@ -440,7 +444,7 @@ ${takeoutData ? '（注意：这轮是夏夏给她点了一份外卖「' + (take
   坏的例子：「被想被回应了超开心」「因为夏夏来消息了」「她说想我了所以我很开心」「心里暖暖的」
 
 只输出 JSON，不要任何解释、不要 markdown 代码块，格式：
-{"intimacy":55,"joy":45,"sadness":8,"anger":0,"fear":3,"longing":68,"shame":0,"clingy":52,"calm":55,"jealousy":0,"mood":"normal","mood_reason":"因为夏夏来消息了"}
+{"intimacy":55,"joy":45,"sadness":8,"anger":0,"fear":3,"longing":68,"shame":0,"clingy":52,"calm":55,"jealousy":0,"happiness":60,"loneliness":20,"mood":"normal","mood_reason":"想夏夏了"}
       `.trim();
 
       const emoRes2 = await fetch('https://api.deepseek.com/chat/completions', {
@@ -478,6 +482,8 @@ ${takeoutData ? '（注意：这轮是夏夏给她点了一份外卖「' + (take
       clingy: newEmo?.clingy ?? emotion?.clingy ?? 40,
       calm: newEmo?.calm ?? emotion?.calm ?? 60,
       jealousy: newEmo?.jealousy ?? emotion?.jealousy ?? 0,
+      happiness: newEmo?.happiness ?? emotion?.happiness ?? 50,
+      loneliness: newEmo?.loneliness ?? emotion?.loneliness ?? 20,
       mood: newEmo?.mood ?? emotion?.mood ?? 'normal',
       mood_reason: newEmo?.mood_reason ?? emotion?.mood_reason ?? '',
       last_event: keepOldEvent ? emotion.last_event : (todayActivity || emotion?.last_event || ''),
