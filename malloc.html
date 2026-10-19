@@ -1994,6 +1994,8 @@ body{
     <div>语音通话</div>
   </div>
   <div class="ca-gap"></div>
+  <div class="ca-cancel" onclick="testSTT()">测试语音识别</div>
+  <div class="ca-gap"></div>
   <div class="ca-cancel" onclick="closeCallAction()">取消</div>
 </div>
 
@@ -3281,14 +3283,24 @@ async function stopSpeakingAndRecognize() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ audio: base64data, format: 'mp3' })
         });
+        
+        if (!res.ok) {
+          const errText = await res.text();
+          alert('STT 接口报错: HTTP ' + res.status + '\n' + errText);
+          return;
+        }
+
         const data = await res.json();
         
         if (data.text && data.text.trim()) {
           const text = data.text.trim();
           showText('me', text); // 显示你说的绿色字
           callChat(text);
+        } else {
+          alert('STT 返回为空，原数据：' + JSON.stringify(data));
         }
       } catch (err) {
+        alert('识别网络异常: ' + err.message);
         console.error('识别失败', err);
       } finally {
         talkBtn.textContent = ''; 
@@ -5221,6 +5233,29 @@ document.getElementById('chatbg-file').addEventListener('change', async e => {
   }
   e.target.value = '';
 });
+
+function testSTT() {
+  // 这里用一段网上的测试音频 base64
+  const testAudio = '//NExAAS...'; // 临时不管
+  
+  alert('开始测试 /api/stt，请稍等...');
+  
+  // 手动构造一个 1 秒静音 mp3 的 base64（其实就是空的 base64，测试接口是否连通）
+  fetch('/api/stt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ audio: 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU3LjgzLjEwMAAAAAAAAAAAAAAA//9FQw==', format: 'mp3' })
+  }).then(res => {
+    if (!res.ok) {
+      return res.text().then(t => { throw new Error('HTTP ' + res.status + ': ' + t); });
+    }
+    return res.json();
+  }).then(data => {
+    alert('测试成功，返回：\n' + JSON.stringify(data));
+  }).catch(err => {
+    alert('测试失败：\n' + err.message);
+  });
+}
 
 // 初始化
 applyListAvatar();
