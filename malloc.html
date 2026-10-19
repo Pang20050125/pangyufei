@@ -3190,14 +3190,19 @@ async function startVoiceCallListen() {
     const source = audioCtx.createMediaStreamSource(micStream);
     source.connect(analyser);
 
-    let mimeType = 'audio/webm';
-    if (MediaRecorder.isTypeSupported('audio/mp4')) {
-      mimeType = 'audio/mp4';
-    } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-      mimeType = 'audio/webm';
+    let mimeType = '';
+    // 强制检查 mp3 支持情况，不支持就用默认的
+    if (MediaRecorder.isTypeSupported('audio/mp3')) {
+      mimeType = 'audio/mp3';
+    } else if (MediaRecorder.isTypeSupported('audio/mpeg')) {
+      mimeType = 'audio/mpeg';
     }
     
-    mediaRecorder = new MediaRecorder(micStream, { mimeType });
+    if (mimeType) {
+      mediaRecorder = new MediaRecorder(micStream, { mimeType });
+    } else {
+      mediaRecorder = new MediaRecorder(micStream); // 用默认
+    }
     mediaRecorder.ondataavailable = e => {
       if (e.data.size > 0) audioChunks.push(e.data);
     };
@@ -3293,8 +3298,12 @@ async function stopSpeakingAndRecognize() {
           if (data.text && data.text.trim()) {
             const text = data.text.trim();
             showText('me', text);
-            callChat(text); // 触发她回复
+            callChat(text);
+          } else {
+            alert('识别为空，返回：' + JSON.stringify(data));
           }
+        } else {
+          alert('STT 接口报错 HTTP: ' + res.status);
         }
       } catch (err) {
         console.error('识别异常: ' + err.message);
