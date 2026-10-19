@@ -1977,6 +1977,9 @@ body{
   <div class="call-status" id="call-status">已接通</div>
   <div class="call-subtitle" id="call-subtitle"></div>
   <div class="call-talk-tip" id="call-talk-tip">聆听中...</div>
+  <div style="width:80%;height:1vh;background:#333;margin:2vh 0;border-radius:0.5vh;z-index:2;position:relative;overflow:hidden;">
+    <div id="call-volume-bar" style="width:0%;height:100%;background:#07C160;transition:width 0.1s;"></div>
+  </div>
   <div class="call-actions">
     <div class="call-action-item" onclick="toggleMic()">
       <div class="call-action-circle" id="call-btn-mic"></div>
@@ -3168,6 +3171,12 @@ function detectVoice() {
   let sum = 0;
   for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
   let avg = sum / dataArray.length;
+
+  // --- 测试音量条 ---
+  const volBar = document.getElementById('call-volume-bar');
+  if (volBar) volBar.style.width = Math.min(100, avg * 2) + '%';
+  console.log('当前音量:', avg);
+  // ------------------
 
   const threshold = 25; 
 
