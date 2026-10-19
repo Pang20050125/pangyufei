@@ -1205,6 +1205,143 @@ body{
 }
 #call-action-panel .ca-cancel:active{background:#f5f5f5}
 
+/* ===== 语音通话界面 ===== */
+#call-screen{
+  position:fixed;
+  top:0;left:0;
+  width:100%;
+  height:100%;
+  background:#000;
+  z-index:10000;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  overflow:hidden;
+}
+#call-screen.show{
+  display:flex;
+}
+#call-screen .call-bg-blur{
+  position:absolute;
+  top:0;left:0;right:0;bottom:0;
+  background-size:cover;
+  background-position:center;
+  filter:blur(30px);
+  opacity:0.5;
+  z-index:0;
+}
+#call-screen .call-topbar{
+  width:100%;
+  height:10vh;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:0 6vw;
+  position:relative;
+  z-index:2;
+  margin-top:2vh;
+}
+#call-screen .call-icon-btn{
+  width:4.5vh;
+  height:4.5vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+#call-screen .call-icon-btn img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+}
+#call-screen .call-timer{
+  font-size:2.2vh;
+  color:#fff;
+  font-weight:500;
+  letter-spacing:1px;
+}
+#call-screen .call-avatar{
+  width:16vh;
+  height:16vh;
+  border-radius:2.5vh;
+  background:#eee;
+  overflow:hidden;
+  position:relative;
+  z-index:2;
+  margin-top:15vh;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+}
+#call-screen .call-avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+#call-screen .call-name{
+  font-size:2.8vh;
+  color:#fff;
+  margin-top:2.5vh;
+  position:relative;
+  z-index:2;
+  letter-spacing:1px;
+}
+#call-screen .call-status{
+  font-size:1.8vh;
+  color:rgba(255,255,255,0.6);
+  margin-top:auto;
+  margin-bottom:4vh;
+  position:relative;
+  z-index:2;
+}
+#call-screen .call-actions{
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  gap:12vw;
+  width:100%;
+  padding-bottom:12vh;
+  position:relative;
+  z-index:2;
+}
+#call-screen .call-action-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:1.5vh;
+  cursor:pointer;
+}
+#call-screen .call-action-circle{
+  width:8vh;
+  height:8vh;
+  border-radius:50%;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 4px 10px rgba(0,0,0,0.15);
+  overflow:hidden;
+}
+#call-screen .call-action-circle img{
+  width:60%;
+  height:60%;
+  object-fit:contain;
+  display:block;
+}
+#call-screen .call-action-circle.red{
+  background:#ff3b30;
+}
+#call-screen .call-action-circle.red img{
+  filter:brightness(0) invert(1);
+  width:65%;
+  height:65%;
+}
+#call-screen .call-action-label{
+  font-size:1.6vh;
+  color:#fff;
+  letter-spacing:0.5px;
+}
+
 /* ===== 服务 ===== */
 .service-card{
   margin:16px var(--pad-x);
@@ -1764,6 +1901,33 @@ body{
   </div>
   <div class="ca-gap"></div>
   <div class="ca-cancel" onclick="closeCallAction()">取消</div>
+</div>
+
+<!-- 语音通话界面 -->
+<div id="call-screen">
+  <div class="call-bg-blur" id="call-bg-blur"></div>
+  <div class="call-topbar">
+    <div class="call-icon-btn" id="call-icon-left"></div>
+    <div class="call-timer" id="call-timer">00:00</div>
+    <div class="call-icon-btn" id="call-icon-right"></div>
+  </div>
+  <div class="call-avatar" id="call-avatar"></div>
+  <div class="call-name" id="call-name">malloc</div>
+  <div class="call-status">已接通</div>
+  <div class="call-actions">
+    <div class="call-action-item" onclick="toggleMic()">
+      <div class="call-action-circle" id="call-btn-mic"></div>
+      <div class="call-action-label" id="call-lbl-mic">麦克风已开</div>
+    </div>
+    <div class="call-action-item" onclick="endCall()">
+      <div class="call-action-circle red" id="call-btn-hangup"></div>
+      <div class="call-action-label">挂断</div>
+    </div>
+    <div class="call-action-item" onclick="toggleSpeaker()">
+      <div class="call-action-circle" id="call-btn-speaker"></div>
+      <div class="call-action-label" id="call-lbl-speaker">免提</div>
+    </div>
+  </div>
 </div>
 
 <!-- Malloc 个人信息页（body 顶层，绝对置顶） -->
@@ -2740,7 +2904,80 @@ function renderCallActionIcons(){
 }
 function pickCallAction(type){
   closeCallAction();
-  alert(type + ' 还没做');
+  if (type === '语音通话') {
+    startVoiceCall();
+  } else {
+    alert(type + ' 还没做');
+  }
+}
+
+/* ===== 语音通话逻辑 ===== */
+let callTimerInterval = null;
+let callSeconds = 0;
+let isMicOn = true;
+let isSpeakerOn = false;
+
+function startVoiceCall(){
+  const screen = document.getElementById('call-screen');
+  screen.classList.add('show');
+  
+  // 渲染图标和头像
+  const avEl = document.getElementById('call-avatar');
+  if (avEl) avEl.innerHTML = herAvatarUrl ? '<img src="' + herAvatarUrl + '">' : '';
+  document.getElementById('call-bg-blur').style.backgroundImage = herAvatarUrl ? 'url(' + herAvatarUrl + ')' : '';
+  
+  const nameEl = document.getElementById('call-name');
+  if (nameEl) nameEl.textContent = (soulData && soulData.name) || 'malloc';
+
+  const leftIcon = iconMap['语音通话左上角图标'];
+  document.getElementById('call-icon-left').innerHTML = leftIcon ? '<img src="' + leftIcon + '">' : '';
+  
+  const rightIcon = iconMap['语音通话右上角图标'];
+  document.getElementById('call-icon-right').innerHTML = rightIcon ? '<img src="' + rightIcon + '">' : '';
+
+  const micIcon = iconMap['麦克风已开'];
+  document.getElementById('call-btn-mic').innerHTML = micIcon ? '<img src="' + micIcon + '">' : '';
+
+  const speakerIcon = iconMap['免提'];
+  document.getElementById('call-btn-speaker').innerHTML = speakerIcon ? '<img src="' + speakerIcon + '">' : '';
+
+  const hangupIcon = iconMap['挂断'];
+  document.getElementById('call-btn-hangup').innerHTML = hangupIcon ? '<img src="' + hangupIcon + '">' : '';
+
+  // 启动计时器
+  callSeconds = 0;
+  updateCallTimer();
+  if (callTimerInterval) clearInterval(callTimerInterval);
+  callTimerInterval = setInterval(() => {
+    callSeconds++;
+    updateCallTimer();
+  }, 1000);
+}
+
+function updateCallTimer(){
+  const m = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+  const s = String(callSeconds % 60).padStart(2, '0');
+  document.getElementById('call-timer').textContent = m + ':' + s;
+}
+
+function endCall(){
+  document.getElementById('call-screen').classList.remove('show');
+  if (callTimerInterval) {
+    clearInterval(callTimerInterval);
+    callTimerInterval = null;
+  }
+}
+
+function toggleMic(){
+  isMicOn = !isMicOn;
+  const lbl = document.getElementById('call-lbl-mic');
+  if (lbl) lbl.textContent = isMicOn ? '麦克风已开' : '麦克风已关';
+}
+
+function toggleSpeaker(){
+  isSpeakerOn = !isSpeakerOn;
+  const lbl = document.getElementById('call-lbl-speaker');
+  if (lbl) lbl.textContent = isSpeakerOn ? '扬声器开' : '免提';
 }
 
 /* ===== 拍一拍 ===== */
