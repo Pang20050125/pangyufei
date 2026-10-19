@@ -3179,7 +3179,7 @@ let isSpeaking = false;
 let silenceTimer = null;
 let voiceStartTime = 0;
 
-const talkBtn = document.getElementById('call-talk-tip');
+const talkBtn = document.getElementById('call-talk-tip') || document.createElement('div'); // 兜底防止 null 报错
 
 async function startVoiceCallListen() {
   if (!isMicOn || isListening) return;
@@ -3360,7 +3360,7 @@ function showText(who, text) {
 
 async function callChat(text) {
   try {
-    addSubtitle('sys', '思考中...'); // 加个状态
+    showText('her', '思考中...'); // 改用 showText
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3391,7 +3391,7 @@ async function callChat(text) {
     }
   } catch (e) {
     console.error('chat 请求失败', e);
-    addSubtitle('sys', '网络出错啦');
+    showText('her', '网络出错啦');
   }
 }
 
