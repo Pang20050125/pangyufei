@@ -14,10 +14,11 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { audio } = req.body || {};
+  const { audio, format } = req.body || {};
   if (!audio || typeof audio !== 'string') {
     return res.status(400).json({ error: 'audio required (base64)' });
   }
+  const audioFormat = format || 'mp3';
 
   const APPKEY = process.env.ALI_STT_APPKEY;
   const TOKEN = process.env.ALI_STT_TOKEN;
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
 
   try {
     // 直接用临时 Token 调一句话识别
-    const sttUrl = `https://nls-gateway-cn-shanghai.aliyuncs.com/stream/v1/asr?appkey=${APPKEY}&format=mp3`;
+    const sttUrl = `https://nls-gateway-cn-shanghai.aliyuncs.com/stream/v1/asr?appkey=${APPKEY}&format=${audioFormat}`;
     
     const audioBuffer = Buffer.from(audio, 'base64');
 
