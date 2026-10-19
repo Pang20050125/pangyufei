@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 export const config = {
   api: {
     bodyParser: {
@@ -5,6 +7,17 @@ export const config = {
     }
   }
 };
+
+// 阿里云 RPC 签名算法
+function getSignature(params, secret) {
+  const sortedKeys = Object.keys(params).sort();
+  const canonicalizedQueryString = sortedKeys
+    .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+    .join('&');
+  
+  const stringToSign = 'POST&%2F&' + encodeURIComponent(canonicalizedQueryString);
+  return crypto.createHmac('sha1', secret + '&').update(stringToSign).digest('base64');
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,84 +32,60 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'audio required (base64)' });
   }
 
-  const VOLC_TTS_KEY = process.env.VOLC_TTS_KEY;
-  if (!VOLC_TTS_KEY) {
-    return res.status(500).json({ error: 'missing VOLC_TTS_KEY' });
+  const APPKEY = process.env.ALI_STT_APPKEY;
+  const AK_ID = process.env.ALI_STT_AK_ID;
+  const AK_SECRET = process.env.ALI_STT_AK_SECRET;
+
+  if (!APPKEY || !AK_ID || !AK_SECRET) {
+    return res.status(500).json({ error: 'missing ali cloud credentials' });
   }
 
-  const reqId = (typeof crypto !== 'undefined' && crypto.randomUUID)
-    ? crypto.randomUUID()
-    : 'req-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
-
-  // ===== 1. 提交任务（Submit） =====
-  const submitUrl = 'https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit';
-  
   try {
-    const submitRes = await fetch(submitUrl, {
+    // 1. 调阿里云获取 Token
+    const tokenParams = {
+      AccessKeyId: AK_ID,
+      Action: 'CreateToken',
+      Format: 'JSON',
+      RegionId: 'cn-shanghai',
+      SignatureMethod: 'HMAC-SHA1',
+      SignatureNonce: Date.now().toString(),
+      SignatureVersion: '1.0',
+      Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+      Version: '2019-02-28'
+    };
+    tokenParams.Signature = getSignature(tokenParams, AK_SECRET);
+
+    const tokenQuery = Object.keys(tokenParams).map(k => `${k}=${encodeURIComponent(tokenParams[k])}`).join('&');
+    const tokenRes = await fetch(`https://nls-meta.cn-shanghai.aliyuncs.com/?${tokenQuery}`, { method: 'POST' });
+    const tokenData = await tokenRes.json();
+    
+    if (!tokenData.Token || !tokenData.Token.Id) {
+      return res.status(500).json({ error: 'get ali token failed', detail: tokenData });
+    }
+    
+    const token = tokenData.Token.Id;
+
+    // 2. 调阿里云一句话识别
+    const sttUrl = `https://nls-gateway-cn-shanghai.aliyuncs.com/stream/v1/asr?appkey=${APPKEY}&format=mp3`;
+    
+    const audioBuffer = Buffer.from(audio, 'base64');
+
+    const sttRes = await fetch(sttUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': VOLC_TTS_KEY,
-        'X-Api-Resource-Id': 'volc.bigasr.auc', // 录音文件识别 1.0 标准版
-        'X-Api-Request-Id': reqId,
-        'X-Api-Sequence': '-1'
+        'X-NLS-Token': token,
+        'Content-Type': 'application/octet-stream'
       },
-      body: JSON.stringify({
-        user: { uid: 'malloc' },
-        audio: { data: audio },
-        request: { model_name: 'bigmodel' }
-      })
+      body: audioBuffer
     });
 
-    if (!submitRes.ok) {
-      const errText = await submitRes.text();
-      return res.status(500).json({ error: 'submit failed', status: submitRes.status, detail: errText });
+    const sttData = await sttRes.json();
+
+    if (sttData.status === 20000000 && sttData.result) {
+      return res.status(200).json({ text: sttData.result });
+    } else {
+      return res.status(500).json({ error: 'ali stt failed', detail: sttData });
     }
-
-    // ===== 2. 轮询查询结果（Query） =====
-    const queryUrl = `https://openspeech.bytedance.com/api/v3/auc/bigmodel/query?task_id=${reqId}`;
-    let textResult = '';
-    
-    // 最多查 10 次，每次等 1.5 秒
-    for (let i = 0; i < 10; i++) {
-      await new Promise(r => setTimeout(r, 1500));
-      
-      const queryRes = await fetch(queryUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Api-Key': VOLC_TTS_KEY,
-          'X-Api-Resource-Id': 'volc.bigasr.auc',
-          'X-Api-Request-Id': reqId
-        },
-        body: JSON.stringify({})
-      });
-
-      if (!queryRes.ok) {
-        const errText = await queryRes.text();
-        return res.status(500).json({ error: 'query failed', status: queryRes.status, detail: errText });
-      }
-
-      const data = await queryRes.json();
-      
-      // 如果状态是完成，提取文字
-      if (data.result && data.result.text) {
-        textResult = data.result.text;
-        break;
-      }
-      
-      // 状态码如果是 20000001 (处理中)，继续等
-      const statusCode = data.header?.code;
-      if (statusCode && statusCode !== '20000000' && statusCode !== '20000001') {
-        return res.status(500).json({ error: 'query error', detail: data });
-      }
-    }
-
-    if (!textResult) {
-      return res.status(500).json({ error: 'timeout or no text' });
-    }
-
-    return res.status(200).json({ text: textResult });
 
   } catch (e) {
     return res.status(500).json({ error: e.message });
